@@ -134,6 +134,10 @@ class Account:
         return t
 
     async def cancel_use_client_oid(self, oid):
+        """
+        :param oid: support multi IDs, separated by comma
+        :return:
+        """
         log.debug('Cancel use client oid', oid)
 
         data = {'client_oid': oid}
@@ -141,6 +145,10 @@ class Account:
         return t
 
     async def cancel_use_exchange_oid(self, oid):
+        """
+        :param oid: support multi IDs, separated by comma
+        :return:
+        """
         log.debug('Cancel use exchange oid', oid)
         data = {'exchange_oid': oid}
         t = await self.api_call('delete', '/orders', params=data)
@@ -179,7 +187,7 @@ class Account:
 
     async def get_order_use_client_oid(self, client_oid):
         """
-        :param client_oid:
+        :param client_oid: support multi IDs, separated by comma
         :return:
         """
         res = await self.api_call('get', '/orders', params={'client_oid': client_oid})
@@ -188,7 +196,7 @@ class Account:
 
     async def get_order_use_exchange_oid(self, exchange_oid):
         """
-        :param exchange_oid:
+        :param exchange_oid: support multi IDs, separated by comma
         :return:
         """
         res = await self.api_call('get', '/orders', params={'exchange_oid': exchange_oid})
