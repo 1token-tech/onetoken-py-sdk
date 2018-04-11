@@ -133,22 +133,30 @@ class Account:
         t = await self.api_call('get', '/orders', params=data)
         return t
 
-    async def cancel_use_client_oid(self, oid):
+    async def cancel_use_client_oid(self, oid, *oids):
         """
-        :param oid: support multi IDs, separated by comma
+        cancel order use client oid, support batch
+        :param oid:
+        :param oids:
         :return:
         """
+        if oids:
+            oid = f'{oid},{",".join(oids)}'
         log.debug('Cancel use client oid', oid)
 
         data = {'client_oid': oid}
         t = await self.api_call('delete', '/orders', params=data)
         return t
 
-    async def cancel_use_exchange_oid(self, oid):
+    async def cancel_use_exchange_oid(self, oid, *oids):
         """
-        :param oid: support multi IDs, separated by comma
+        cancel order use exchange oid, support batch
+        :param oid:
+        :param oids:
         :return:
         """
+        if oids:
+            oid = f'{oid},{",".join(oids)}'
         log.debug('Cancel use exchange oid', oid)
         data = {'exchange_oid': oid}
         t = await self.api_call('delete', '/orders', params=data)
@@ -185,21 +193,27 @@ class Account:
     async def get_status(self):
         return await self.api_call('get', '/status')
 
-    async def get_order_use_client_oid(self, client_oid):
+    async def get_order_use_client_oid(self, oid, *oids):
         """
-        :param client_oid: support multi IDs, separated by comma
+        :param oid:
+        :param oids:
         :return:
         """
-        res = await self.api_call('get', '/orders', params={'client_oid': client_oid})
+        if oids:
+            oid = f'{oid},{",".join(oids)}'
+        res = await self.api_call('get', '/orders', params={'client_oid': oid})
         log.debug(res)
         return res
 
-    async def get_order_use_exchange_oid(self, exchange_oid):
+    async def get_order_use_exchange_oid(self,  oid, *oids):
         """
-        :param exchange_oid: support multi IDs, separated by comma
+        :param oid:
+        :param oids:
         :return:
         """
-        res = await self.api_call('get', '/orders', params={'exchange_oid': exchange_oid})
+        if oids:
+            oid = f'{oid},{",".join(oids)}'
+        res = await self.api_call('get', '/orders', params={'exchange_oid': oid})
         log.debug(res)
         return res
 
