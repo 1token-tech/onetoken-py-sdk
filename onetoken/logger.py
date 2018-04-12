@@ -11,8 +11,8 @@ def set_log():
     ch.setLevel(syslog.INFO)
     ch.setFormatter(
         syslog.Formatter('%(levelname)-.4s [%(asctime)s][qb][%(filename)s:%(lineno)s] %(message)s', '%H:%M:%S'))
+    log.handlers.clear()
     log.addHandler(ch)
-    log.setLevel(syslog.INFO)
 
     def wrap(orig):
         def new_func(*args, **kwargs):

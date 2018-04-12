@@ -13,30 +13,41 @@ REST_HOST = 'https://api.1token.trade/v1'
 
 
 class Quote:
-    def __init__(self):
+    def __init__(self, key=None):
+        self.key = key
         self.sess = None
         self.ws = None
         self.last_tick_dict = {}
         self.tick_queue_update = defaultdict(list)
         self.tick_queue = {}
-        self.running = False
+        self.connected = False
         self.lock = asyncio.Lock()
+        asyncio.ensure_future(self.ensure_connected())
 
-    async def init(self):
+    async def ensure_connected(self):
         log.debug('Connecting to {}'.format(HOST))
-
-        try:
-            self.sess = aiohttp.ClientSession()
-            self.ws = await self.sess.ws_connect(HOST, autoping=False)
-            await self.ws.send_json({'uri': 'auth', 'sample-rate': 0})
-        except Exception as e:
-            log.warning('try connect to WebSocket failed...', e)
-            self.sess.close()
-            raise e
-        else:
-            log.debug('Connected to WS')
-            self.running = True
-            asyncio.ensure_future(self.on_msg())
+        while True:
+            if not self.connected:
+                try:
+                    self.sess = aiohttp.ClientSession()
+                    self.ws = await self.sess.ws_connect(HOST, autoping=False, timeout=30)
+                    await self.ws.send_json({'uri': 'auth', 'sample-rate': 0})
+                except Exception as e:
+                    log.warning('try connect to WebSocket failed...', e)
+                    self.sess.close()
+                    self.sess = None
+                    await asyncio.sleep(60)
+                else:
+                    log.debug('Connected to WS')
+                    self.connected = True
+                    asyncio.ensure_future(self.on_msg())
+                    async with self.lock:
+                        cons = list(self.tick_queue_update.keys())
+                        log.info('recover subscriptions', cons)
+                        for con in cons:
+                            asyncio.ensure_future(self.subscribe_tick(con))
+            else:
+                await asyncio.sleep(1)
 
     async def on_msg(self):
         while not self.ws.closed:
@@ -54,8 +65,8 @@ class Quote:
             except Exception as e:
                 log.warning('msg error...', e)
 
-        self.running = False
-        log.info('ws was disconnected...')
+        self.connected = False
+        log.warning('ws was disconnected...')
 
     # await ws.send_json({'uri': 'subscribe-single-tick-verbose', 'contract': 'btc.usd:xtc.bitfinex'})
 
@@ -73,12 +84,12 @@ class Quote:
 
     async def subscribe_tick(self, contract, on_update=None):
         log.info('subscribe tick', contract)
-        while not self.running:
+        while not self.connected:
             await asyncio.sleep(1)
         async with self.lock:
             try:
+                await self.ws.send_json({'uri': 'subscribe-single-tick-verbose', 'contract': contract})
                 if contract not in self.tick_queue:
-                    await self.ws.send_json({'uri': 'subscribe-single-tick-verbose', 'contract': contract})
                     self.tick_queue[contract] = asyncio.Queue()
                     if on_update:
                         if not self.tick_queue_update[contract]:
@@ -107,11 +118,9 @@ async def get_client(key='defalut'):
     if key in _client_pool:
         return _client_pool[key]
     else:
-        c = Quote()
+        c = Quote(key)
         _client_pool[key] = c
-        await c.init()
         return c
-
 
 async def get_last_tick(contract):
     async with aiohttp.ClientSession() as sess:
