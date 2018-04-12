@@ -6,12 +6,14 @@ log = logging.getLogger('ots')
 
 def set_log():
     # syslog.basicConfig()
-    ch = logging.StreamHandler(sys.stdout)
-    ch.setLevel(logging.INFO)
+    import logging as syslog
+    # syslog.basicConfig()
+    ch = syslog.StreamHandler(sys.stdout)
+    ch.setLevel(syslog.INFO)
     ch.setFormatter(
-        logging.Formatter('%(levelname)-.4s [%(asctime)s][qb][%(filename)s:%(lineno)s] %(message)s', '%H:%M:%S'))
-    log.handlers.clear()
+        syslog.Formatter('%(levelname)-.4s [%(asctime)s][qb][%(filename)s:%(lineno)s] %(message)s', '%H:%M:%S'))
     log.addHandler(ch)
+    log.setLevel(syslog.INFO)
 
     def wrap(orig):
         def new_func(*args, **kwargs):

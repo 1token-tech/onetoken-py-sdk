@@ -46,9 +46,10 @@ class Quote:
                     asyncio.ensure_future(self.on_msg())
                     async with self.lock:
                         cons = list(self.tick_queue_update.keys())
-                        log.info('recover subscriptions', cons)
-                        for con in cons:
-                            asyncio.ensure_future(self.subscribe_tick(con))
+                        if cons:
+                            log.info('recover subscriptions', cons)
+                            for con in cons:
+                                asyncio.ensure_future(self.subscribe_tick(con))
             else:
                 await asyncio.sleep(1)
 
