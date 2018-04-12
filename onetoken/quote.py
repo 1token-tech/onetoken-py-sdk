@@ -13,7 +13,7 @@ REST_HOST = 'https://api.1token.trade/v1'
 
 
 class Quote:
-    def __init__(self, key=None):
+    def __init__(self, key=None, ensure_connection=True):
         self.key = key
         self.sess = None
         self.ws = None
@@ -22,21 +22,24 @@ class Quote:
         self.tick_queue = {}
         self.connected = False
         self.lock = asyncio.Lock()
+        self.ensure_connection = ensure_connection
         asyncio.ensure_future(self.ensure_connected())
 
     async def ensure_connected(self):
         log.debug('Connecting to {}'.format(HOST))
-        while True:
+        sleep_seconds = 2
+        while self.ensure_connection:
             if not self.connected:
                 try:
                     self.sess = aiohttp.ClientSession()
                     self.ws = await self.sess.ws_connect(HOST, autoping=False, timeout=30)
                     await self.ws.send_json({'uri': 'auth', 'sample-rate': 0})
                 except Exception as e:
-                    log.warning('try connect to WebSocket failed...', e)
                     self.sess.close()
                     self.sess = None
-                    await asyncio.sleep(60)
+                    log.warning(f'try connect to WebSocket failed, sleep for {sleep_seconds} seconds...', e)
+                    await asyncio.sleep(sleep_seconds)
+                    sleep_seconds = min(sleep_seconds * 2, 64)
                 else:
                     log.debug('Connected to WS')
                     self.connected = True

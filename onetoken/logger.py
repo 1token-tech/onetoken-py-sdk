@@ -5,12 +5,11 @@ log = logging.getLogger('ots')
 
 
 def set_log():
-    import logging as syslog
     # syslog.basicConfig()
-    ch = syslog.StreamHandler(sys.stdout)
-    ch.setLevel(syslog.INFO)
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setLevel(logging.INFO)
     ch.setFormatter(
-        syslog.Formatter('%(levelname)-.4s [%(asctime)s][qb][%(filename)s:%(lineno)s] %(message)s', '%H:%M:%S'))
+        logging.Formatter('%(levelname)-.4s [%(asctime)s][qb][%(filename)s:%(lineno)s] %(message)s', '%H:%M:%S'))
     log.handlers.clear()
     log.addHandler(ch)
 
