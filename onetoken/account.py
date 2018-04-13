@@ -12,15 +12,15 @@ import hashlib
 from . import autil
 from . import log
 from . import util
+from .model import Info, Order
 
 
 class Config:
     api_host = 'https://api.1token.trade/v1/trade'
 
 
-def get_trans_host(symbol):
-    name, exg = get_name_exchange(symbol)
-    return '/{}/{}'.format(exg, name)
+def get_trans_host(exg):
+    return '{}/{}'.format(Config.api_host, exg)
 
 
 def get_name_exchange(symbol):
@@ -62,29 +62,6 @@ def gen_sign(secret, verb, url, nonce, data):
     return signature
 
 
-class Info:
-    def __init__(self, data):
-        assert isinstance(data, dict)
-        # if 'position' not in y:
-        #     log.warning('failed', self.symbol, str(y))
-        #     return None, Exception('ACC_GET_INFO_FAILED')
-        self.data = data
-        # ['position_dict']
-        self.position_dict = {item['contract']: item for item in data.get('position', [])}
-
-    @property
-    def balance(self):
-        return self.data['balance']
-
-    def get_total_amount(self, pos_symbol):
-        if pos_symbol in self.position_dict:
-            return float(self.position_dict[pos_symbol]['total_amount'])
-        else:
-            return 0.0
-
-    def __repr__(self):
-        return json.dumps(self.data)
-
 class Account:
     def __init__(self, symbol: str, api_key, api_secret, loop=None):
         """
@@ -98,13 +75,9 @@ class Account:
         self.api_key = api_key
         self.api_secret = api_secret
         log.debug('async account init {}'.format(symbol))
-        self.session = None
-        self.trans_path = get_trans_host(symbol)
-        self.session = aiohttp.ClientSession(loop=loop)
         self.name, self.exchange = get_name_exchange(symbol)
-        self.host = Config.api_host + self.trans_path
-        log.debug('host', self.host)
-        # self.last_info = None
+        self.host = get_trans_host(self.exchange)
+        self.session = aiohttp.ClientSession(loop=loop)
         self.closed = False
 
     def close(self):
@@ -120,6 +93,10 @@ class Account:
 
     def __repr__(self):
         return '<{}:{}>'.format(self.__class__.__name__, self.symbol)
+
+    @property
+    def trans_path(self):
+        return '{}/{}'.format(self.host, self.name)
 
     async def get_pending_list(self):
         return await self.get_order_list()
@@ -205,7 +182,7 @@ class Account:
         log.debug(res)
         return res
 
-    async def get_order_use_exchange_oid(self,  oid, *oids):
+    async def get_order_use_exchange_oid(self, oid, *oids):
         """
         :param oid:
         :param oids:
@@ -353,7 +330,7 @@ class Account:
         nonce = gen_nonce()
         # headers = {'jwt': gen_jwt(self.secret, self.user_name)}
 
-        url = self.host + endpoint
+        url = self.trans_path + endpoint
 
         # print(self.api_secret, method, url, nonce, data)
         sign = gen_sign(self.api_secret, method, '/{}/{}{}'.format(self.exchange, self.name, endpoint), nonce, data)
