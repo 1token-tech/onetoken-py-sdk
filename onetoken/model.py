@@ -185,7 +185,7 @@ class Contract:
         return self.exchange + '/' + self.name
 
     def __str__(self):
-            return '<Con:{}/{}>'.format(self.exchange, self.name)
+        return '<Con:{}/{}>'.format(self.exchange, self.name)
 
     def __repr__(self):
         return '<{}:{}>'.format(self.__class__.__name__, self.symbol)
@@ -200,3 +200,102 @@ class Contract:
         return cls(exchange, data['name'], data['min_change'], data['alias'], data['category'],
                    data['first_day'], data['last_day'], data['exec_price'], data['currency'],
                    data['id'], data['min_amount'], data['unit_amount'])
+
+
+class Order:
+    BUY = 'b'
+    SELL = 's'
+
+    def __init__(self, contract_symbol, entrust_price, bs, entrust_amount, account_symbol=None, entrust_time=None,
+                 client_oid=None, exg_oid=None, average_dealt_price=None, dealt_amount=None, comment="", status=None,
+                 last_update=None, version=0, last_dealt_amount=None, tags=None, options=None, commission=0):
+        assert bs == self.BUY or bs == self.SELL
+        self.bs = bs
+        self.entrust_price = entrust_price
+        self.entrust_amount = entrust_amount
+        self.contract_symbol = contract_symbol
+        self.account = account_symbol
+        self.exchange_oid = exg_oid
+        self.client_oid = client_oid
+
+        if entrust_time:
+            self.entrust_time = entrust_time
+        else:
+            self.entrust_time = arrow.now().datetime
+        if last_update:
+            self.last_update = last_update
+        else:
+            self.last_update = self.entrust_time
+
+        self.comment = comment
+        self.status = status
+        # version will increase 1 once the order status changed
+        self.version = version
+        # last change means the different deal amount compare with the last status of order
+        self.last_dealt_amount = last_dealt_amount
+        self.avg_dealt_price = average_dealt_price
+        self.dealt_amount = dealt_amount
+        self.commission = commission
+        self.tags = tags if tags else {}
+        self.options = options if options else {}
+
+    @staticmethod
+    def from_dict(dct) -> 'Order':
+        o = Order(contract_symbol=dct['contract'],
+                  entrust_price=dct['entrust_price'],
+                  average_dealt_price=dct.get('average_dealt_price', 0),
+                  bs=dct['bs'],
+                  entrust_amount=dct['entrust_amount'],
+                  entrust_time=dateutil.parser.parse(dct['entrust_time']),
+                  account_symbol=dct['account'],
+                  last_update=dateutil.parser.parse(dct['last_update']),
+                  exg_oid=dct['exchange_oid'],
+                  client_oid=dct['client_oid'],
+                  status=dct['status'],
+                  version=dct['version'],
+                  dealt_amount=dct.get('dealt_amount', 0),
+                  last_dealt_amount=dct.get('last_dealt_amount', 0),
+                  commission=dct.get('commission', 0),
+                  tags=dct.get('tags', {}),
+                  options=dct.get('options', {}),
+                  comment=dct.get('comment', '')
+                  )
+        return o
+
+    def __str__(self):
+        if self.entrust_time:
+            lst = (self.client_oid[:4] if self.client_oid else None, self.entrust_time.strftime('%H:%M:%S'),
+                   self.contract_symbol,
+                   self.avg_dealt_price, self.entrust_price, self.bs, self.dealt_amount, self.entrust_amount,
+                   self.status)
+            return '<{} {} {} {}/{} {} {}/{} {}>'.format(*lst)
+        else:
+            return '(%s, %s,%s,%s,%s,%s)' % (
+                self.client_oid, self.contract_symbol, self.entrust_price, self.bs, '---', self.entrust_amount)
+
+    def __repr__(self):
+        return str(self)
+
+    ERROR_ORDER = 'error-order'
+
+    WAITING = 'waiting'  # received from strategy
+    PENDING = 'pending'  # already send to broker, and received status update from broker, waiting for deal
+    PART_DEAL_PENDING = 'part-deal-pending'
+    WITHDRAWING = 'withdrawing'  # withdraw request send, wait for action
+    PART_DEAL_WITHDRAWING = 'part-deal-withdrawing'  # similar with above, but when withdraw send, some already dealt
+
+    DEALT = 'dealt'
+    WITHDRAWN = 'withdrawn'  # STOP status
+    PART_DEAL_WITHDRAWN = 'part-deal-withdrawn'  # STOP status
+
+    ACTIVE = 'active'
+    END = 'end'
+    ALL = 'all'
+
+    ACTIVE_STATUS = [WAITING, PENDING, PART_DEAL_PENDING, PART_DEAL_WITHDRAWING, WITHDRAWING, ACTIVE]
+
+    END_STATUSES = [ERROR_ORDER, DEALT, WITHDRAWN, PART_DEAL_WITHDRAWN, END]
+
+    ALL_STATUSES = []
+    ALL_STATUSES.extend(ACTIVE_STATUS)
+    ALL_STATUSES.extend(END_STATUSES)
