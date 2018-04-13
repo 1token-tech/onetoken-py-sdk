@@ -202,6 +202,30 @@ class Contract:
                    data['id'], data['min_amount'], data['unit_amount'])
 
 
+class Info:
+    def __init__(self, data):
+        assert isinstance(data, dict)
+        # if 'position' not in y:
+        #     log.warning('failed', self.symbol, str(y))
+        #     return None, Exception('ACC_GET_INFO_FAILED')
+        self.data = data
+        # ['position_dict']
+        self.position_dict = {item['contract']: item for item in data.get('position', [])}
+
+    @property
+    def balance(self):
+        return self.data['balance']
+
+    def get_total_amount(self, pos_symbol):
+        if pos_symbol in self.position_dict:
+            return float(self.position_dict[pos_symbol]['total_amount'])
+        else:
+            return 0.0
+
+    def __repr__(self):
+        return json.dumps(self.data)
+
+
 class Order:
     BUY = 'b'
     SELL = 's'
