@@ -62,6 +62,13 @@ def gen_sign(secret, verb, url, nonce, data):
     return signature
 
 
+IDLE = 'idle'
+GOING_TO_CONNECT = 'going-to-connect'
+CONNECTING = 'connecting'
+READY = 'ready'
+GOING_TO_DICCONNECT = 'going-to-disconnect'
+
+
 class Account:
     def __init__(self, symbol: str, api_key, api_secret, loop=None):
         """
@@ -78,7 +85,12 @@ class Account:
         self.name, self.exchange = get_name_exchange(symbol)
         self.host = get_trans_host(self.exchange)
         self.session = aiohttp.ClientSession(loop=loop)
+        self.ws = None
+        self.ws_state = IDLE
         self.closed = False
+
+        self.sub_queue = {}
+        asyncio.ensure_future(self.keep_connection())
 
     def close(self):
         if self.session and not self.session.closed:
@@ -154,11 +166,8 @@ class Account:
 
     async def place_and_cancel(self, con, price, bs, amount, sleep, options=None):
 
-        # k = util.rand_client_oid(con)
         k = util.rand_client_oid(con)
-        res1, err1 = await self.place_order(con, price, bs, amount,
-                                            client_oid=k,
-                                            options=options)
+        res1, err1 = await self.place_order(con, price, bs, amount, client_oid=k, options=options)
         if err1:
             return (res1, None), (err1, None)
         await asyncio.sleep(sleep)
@@ -226,7 +235,7 @@ class Account:
         log.debug(res)
         return res
 
-    async def place_order(self, con, price, bs, amount, client_oid=None, tags=None, options=None):
+    async def place_order(self, con, price, bs, amount, client_oid=None, tags=None, options=None, on_update=None):
         """
         just pass request, and handle order update --> fire callback and ref_key
         :param options:
@@ -243,6 +252,15 @@ class Account:
         if client_oid is None:
             client_oid = util.rand_client_oid(con)
 
+        if on_update:
+            if self.ws_state != READY:
+                log.warning(f'ws connection is {self.ws_state}/{READY}, on_update may failed.')
+            if 'order' not in self.sub_queue:
+                log.warning(f'order was not subscribed, on_update will not triggered.')
+            else:
+                self.sub_queue['order'][client_oid] = asyncio.Queue()
+                asyncio.ensure_future(self.handle_order_q(client_oid, on_update))
+
         data = {'contract': con,
                 'price': price,
                 'bs': bs,
@@ -256,6 +274,32 @@ class Account:
         res = await self.api_call('post', '/orders', data=data)
         log.debug(res)
         return res
+
+    async def handle_order_q(self, client_oid, on_update):
+        if 'order' not in self.sub_queue:
+            log.warning('order was not subscribed, on_update will not be handled.')
+            return
+        q = self.sub_queue['order'].get(client_oid, None)
+        if not q:
+            log.warning('order queue for {} is not init yet.'.format(client_oid))
+            return
+        while True:
+            try:
+                order = await q.get()
+                log.debug('on update order {}'.format(order))
+                if on_update:
+                    assert callable(on_update), 'on_update is not callable'
+                    if asyncio.iscoroutinefunction(on_update):
+                        await on_update(order)
+                    else:
+                        on_update(order)
+                if order.status in Order.END_STATUSES:
+                    log.debug('{} finished with status {}'.format(order.client_oid[:4], order.status))
+                    break
+            except:
+                log.exception('handle q failed.')
+
+        del self.sub_queue['order'][client_oid]
 
     async def get_dealt_trans(self, con=None):
         """
@@ -340,3 +384,98 @@ class Account:
         if err:
             return None, err
         return res, None
+
+    def set_ws_state(self, new, reason=''):
+        log.debug(f'set ws state from {self.ws_state} to {new}', reason)
+        self.ws_state = new
+
+    async def keep_connection(self):
+        while True:
+            if self.ws_state == GOING_TO_CONNECT:
+                await self.ws_connect()
+            elif self.ws_state == READY:
+                # if not await self.conn.check_connect():
+                #     self.set_ws_state(GOING_TO_CONNECT, 'ping pong fail')
+                # todo heart beat
+                pass
+            elif self.ws_state == GOING_TO_DICCONNECT:
+                await self.ws.close()
+            await asyncio.sleep(1)
+
+    async def ws_connect(self):
+        self.set_ws_state(CONNECTING)
+        nonce = gen_nonce()
+        endpoint = '/ws'
+        sign = gen_sign(self.api_secret, 'GET', '/{}/{}{}'.format(self.exchange, self.name, endpoint), nonce, None)
+        headers = {'Api-Nonce': str(nonce), 'Api-Key': self.api_key, 'Api-Signature': sign,
+                   'Content-Type': 'application/json'}
+        url = self.trans_path + endpoint
+        try:
+            self.ws = await self.session.ws_connect(url, autoping=False, headers=headers, timeout=30)
+        except:
+            self.set_ws_state(GOING_TO_CONNECT, 'ws connect failed')
+        else:
+            log.info('ws connected.')
+            asyncio.ensure_future(self.on_msg())
+
+    async def on_msg(self):
+        while not self.ws.closed:
+            msg = await self.ws.receive()
+            try:
+                if msg.type == aiohttp.WSMsgType.TEXT:
+                    self.parse_message(msg.data)
+                elif msg.type == aiohttp.WSMsgType.CLOSED:
+                    log.debug('closed')
+                    break
+                elif msg.type == aiohttp.WSMsgType.ERROR:
+                    log.warning('error', msg)
+                    break
+            except Exception as e:
+                log.warning('msg error...', e)
+        self.set_ws_state(GOING_TO_CONNECT, 'ws was disconnected...')
+
+    async def parse_message(self, msg):
+        try:
+            data = json.loads(msg)
+            log.debug(data)
+            if 'action' not in data or 'status' not in data:
+                log.warning('unexcept msg get', data)
+                return
+            action = data['action']
+            status = data['status']
+            if action == 'connection':
+                if status == 'ok':
+                    self.set_ws_state(READY, 'Connected and auth passed.')
+                    for key in self.sub_queue.keys():
+                        await self.ws.send_json({'uri': 'sub_{}'.format(key)})
+                else:
+                    self.set_ws_state(GOING_TO_CONNECT, data['message'])
+            if action == 'order' and 'order' in self.sub_queue:
+                if status == 'ok':
+                    order_dct = json.loads(data['data'])
+                    log.debug(order_dct)
+                    order = Order.from_dict(order_dct)
+
+                    if order.client_oid in self.sub_queue['order']:
+                        self.sub_queue['order'][order.client_oid].put_nowait(order)
+                else:
+                    # todo 这里处理order 拿到 error 的情况
+                    pass
+        except:
+            log.warning('unexcept msg get', msg)
+
+    async def subscribe_order(self):
+        self.sub_queue['order'] = {}
+        if self.ws_state == READY:
+            await self.ws.send_json({'uri': 'sub_order'})
+        elif self.ws_state == IDLE:
+            self.set_ws_state(GOING_TO_CONNECT, 'user sub order')
+
+    async def unsubcribe_order(self):
+        del self.sub_queue['order']
+        if self.ws_state == READY:
+            await self.ws.send_json({'uri': 'unsub_order'})
+
+        keys = self.sub_queue.keys()
+        if not keys and self.ws_state != IDLE:
+            self.set_ws_state(GOING_TO_DICCONNECT, 'user disconnect')
