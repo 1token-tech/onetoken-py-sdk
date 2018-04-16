@@ -288,7 +288,7 @@ class Order:
 
     def __str__(self):
         if self.entrust_time:
-            lst = (self.client_oid[:4] if self.client_oid else None, self.entrust_time.strftime('%H:%M:%S'),
+            lst = (self.client_oid[-6:] if self.client_oid else None, self.entrust_time.strftime('%H:%M:%S'),
                    self.contract_symbol,
                    self.avg_dealt_price, self.entrust_price, self.bs, self.dealt_amount, self.entrust_amount,
                    self.status)

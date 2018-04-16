@@ -256,7 +256,7 @@ class Account:
             if self.ws_state != READY:
                 log.warning(f'ws connection is {self.ws_state}/{READY}, on_update may failed.')
             if 'order' not in self.sub_queue:
-                log.warning(f'order was not subscribed, on_update will not triggered.')
+                log.warning(f'order was not subscribed, please notice the on_update will not be triggered.')
             else:
                 self.sub_queue['order'][client_oid] = asyncio.Queue()
                 asyncio.ensure_future(self.handle_order_q(client_oid, on_update))
@@ -423,7 +423,7 @@ class Account:
             msg = await self.ws.receive()
             try:
                 if msg.type == aiohttp.WSMsgType.TEXT:
-                    self.parse_message(msg.data)
+                    await self.parse_message(msg.data)
                 elif msg.type == aiohttp.WSMsgType.CLOSED:
                     log.debug('closed')
                     break
@@ -447,34 +447,34 @@ class Account:
                 if status == 'ok':
                     self.set_ws_state(READY, 'Connected and auth passed.')
                     for key in self.sub_queue.keys():
-                        await self.ws.send_json({'uri': 'sub_{}'.format(key)})
+                        await self.ws.send_json({'uri': 'sub-{}'.format(key)})
                 else:
                     self.set_ws_state(GOING_TO_CONNECT, data['message'])
             if action == 'order' and 'order' in self.sub_queue:
                 if status == 'ok':
-                    order_dct = json.loads(data['data'])
-                    log.debug(order_dct)
+                    order_dct = data['data']
                     order = Order.from_dict(order_dct)
-
                     if order.client_oid in self.sub_queue['order']:
                         self.sub_queue['order'][order.client_oid].put_nowait(order)
                 else:
                     # todo 这里处理order 拿到 error 的情况
                     pass
-        except:
-            log.warning('unexcept msg get', msg)
+        except Exception as e:
+            log.warning('unexcept msg format', msg, e)
 
     async def subscribe_order(self):
-        self.sub_queue['order'] = {}
+        if 'order' not in self.sub_queue:
+            self.sub_queue['order'] = {}
         if self.ws_state == READY:
-            await self.ws.send_json({'uri': 'sub_order'})
+            await self.ws.send_json({'uri': 'sub-order'})
         elif self.ws_state == IDLE:
             self.set_ws_state(GOING_TO_CONNECT, 'user sub order')
 
     async def unsubcribe_order(self):
-        del self.sub_queue['order']
+        if 'order' in self.sub_queue:
+            del self.sub_queue['order']
         if self.ws_state == READY:
-            await self.ws.send_json({'uri': 'unsub_order'})
+            await self.ws.send_json({'uri': 'unsub-order'})
 
         keys = self.sub_queue.keys()
         if not keys and self.ws_state != IDLE:
