@@ -17,10 +17,15 @@ from .model import Info, Order
 
 class Config:
     api_host = 'https://api.1token.trade/v1/trade'
+    ws_host = ''
 
 
 def get_trans_host(exg):
     return '{}/{}'.format(Config.api_host, exg)
+
+
+def get_ws_host(exg):
+    return '{}/{}-ws'.format(Config.ws_host, exg)
 
 
 def get_name_exchange(symbol):
@@ -84,6 +89,7 @@ class Account:
         log.debug('async account init {}'.format(symbol))
         self.name, self.exchange = get_name_exchange(symbol)
         self.host = get_trans_host(self.exchange)
+        self.host_ws = get_ws_host(self.exchange)
         self.session = aiohttp.ClientSession(loop=loop)
         self.ws = None
         self.ws_state = IDLE
@@ -109,6 +115,10 @@ class Account:
     @property
     def trans_path(self):
         return '{}/{}'.format(self.host, self.name)
+
+    @property
+    def ws_path(self):
+        return self.host_ws
 
     async def get_pending_list(self):
         return await self.get_order_list()
@@ -405,11 +415,10 @@ class Account:
     async def ws_connect(self):
         self.set_ws_state(CONNECTING)
         nonce = gen_nonce()
-        endpoint = '/ws'
-        sign = gen_sign(self.api_secret, 'GET', '/{}/{}{}'.format(self.exchange, self.name, endpoint), nonce, None)
+        sign = gen_sign(self.api_secret, 'GET', '/ws', nonce, None)
         headers = {'Api-Nonce': str(nonce), 'Api-Key': self.api_key, 'Api-Signature': sign,
                    'Content-Type': 'application/json'}
-        url = self.trans_path + endpoint
+        url = self.ws_path
         try:
             self.ws = await self.session.ws_connect(url, autoping=False, headers=headers, timeout=30)
         except:
