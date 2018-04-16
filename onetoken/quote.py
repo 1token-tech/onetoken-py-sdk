@@ -68,6 +68,10 @@ class Quote:
                     break
             except Exception as e:
                 log.warning('msg error...', e)
+        try:
+            self.ws.close()
+        except:
+            pass
 
         self.connected = False
         log.warning('ws was disconnected...')
@@ -125,6 +129,7 @@ async def get_client(key='defalut'):
         c = Quote(key)
         _client_pool[key] = c
         return c
+
 
 async def get_last_tick(contract):
     async with aiohttp.ClientSession() as sess:
