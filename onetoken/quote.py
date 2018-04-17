@@ -1,6 +1,6 @@
 import asyncio
 from collections import defaultdict
-
+import arrow
 import aiohttp
 import json
 
@@ -23,7 +23,10 @@ class Quote:
         self.connected = False
         self.lock = asyncio.Lock()
         self.ensure_connection = ensure_connection
+        self.pong = 0
         asyncio.ensure_future(self.ensure_connected())
+        asyncio.ensure_future(self.heart_beat_loop())
+
 
     async def ensure_connected(self):
         log.debug('Connecting to {}'.format(HOST))
@@ -37,12 +40,15 @@ class Quote:
                 except Exception as e:
                     self.sess.close()
                     self.sess = None
+                    self.ws = None
                     log.warning(f'try connect to WebSocket failed, sleep for {sleep_seconds} seconds...', e)
                     await asyncio.sleep(sleep_seconds)
                     sleep_seconds = min(sleep_seconds * 2, 64)
                 else:
                     log.debug('Connected to WS')
                     self.connected = True
+                    sleep_seconds = 2
+                    self.pong = arrow.now().timestamp
                     asyncio.ensure_future(self.on_msg())
                     async with self.lock:
                         cons = list(self.tick_queue_update.keys())
@@ -53,13 +59,33 @@ class Quote:
             else:
                 await asyncio.sleep(1)
 
+    async def heart_beat_loop(self):
+        while True:
+            try:
+                if self.ws and not self.ws.closed:
+                    if arrow.now().timestamp - self.pong > 20:
+                        log.warning('connection heart beat lost')
+                        await self.ws.close()
+                    else:
+                        await self.ws.send_json({'uri': 'ping'})
+            finally:
+                await asyncio.sleep(5)
+
     async def on_msg(self):
         while not self.ws.closed:
             msg = await self.ws.receive()
             try:
                 if msg.type == aiohttp.WSMsgType.TEXT:
-                    # print(msg.data)
-                    self.parse_tick(msg.data)
+                    data = json.loads(msg.data)
+                    if 'uri' in data:
+                        if data['uri'] == 'single-tick-verbose':
+                            self.parse_tick(data)
+                        elif data['uri'] == 'pong':
+                            self.pong = arrow.now().timestamp
+                        elif data['uri'] == 'auth':
+                            log.info(data)
+                        else:
+                            log.warning('unknown message', data)
                 elif msg.type == aiohttp.WSMsgType.CLOSED:
                     log.debug('closed')
                     break
@@ -76,17 +102,12 @@ class Quote:
         self.connected = False
         log.warning('ws was disconnected...')
 
-    # await ws.send_json({'uri': 'subscribe-single-tick-verbose', 'contract': 'btc.usd:xtc.bitfinex'})
-
-    def parse_tick(self, plant_data):
+    def parse_tick(self, data):
         try:
-            data = json.loads(plant_data)
-            # print(data)
-            if 'uri' in data and data['uri'] == 'single-tick-verbose':
-                tick = Tick.from_dict(data['data'])
-                self.last_tick_dict[tick.contract] = tick
-                if tick.contract in self.tick_queue:
-                    self.tick_queue[tick.contract].put_nowait(tick)
+            tick = Tick.from_dict(data['data'])
+            self.last_tick_dict[tick.contract] = tick
+            if tick.contract in self.tick_queue:
+                self.tick_queue[tick.contract].put_nowait(tick)
         except Exception as e:
             log.warning('parse error', e)
 
