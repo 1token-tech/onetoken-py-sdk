@@ -11,7 +11,7 @@ def set_log():
     ch = logging.StreamHandler(sys.stdout)
     ch.setLevel(logging.DEBUG)
     ch.setFormatter(
-        logging.Formatter('%(levelname)-.4s [%(asctime)s][qb][%(filename)s:%(lineno)s] %(message)s', '%H:%M:%S'))
+        logging.Formatter('%(levelname)-.7s [%(asctime)s][qb][%(filename)s:%(lineno)s] %(message)s', '%H:%M:%S'))
     log.addHandler(ch)
     log.setLevel(logging.INFO)
 
@@ -30,11 +30,6 @@ def set_log():
     log.warning = wrap(log.warning)
     log.exception = wrap(log.exception)
 
-    logging.debug = log.debug
-    logging.warn = log.warning
-    logging.warning = log.warning
-    logging.exception = log.exception
-
 
 set_log()
 
@@ -45,16 +40,11 @@ def log_level(level):
 
 
 def main():
-    # log_level(logging.DEBUG)
-    log.warning('warning log test 1')
-    logging.warning('warning')
-    log.warning('warning log test 2')
-
-    # log_level(logging.DEBUG)
-    # log.debug('debug log test')
-    # log.info('info log test')
-    # log.warning('warning log test')
-    # log.exception('exception log test')
+    log_level(logging.DEBUG)
+    log.debug('debug log test')
+    log.info('info log test')
+    log.warning('warning log test')
+    log.exception('exception log test')
 
 
 if __name__ == '__main__':
