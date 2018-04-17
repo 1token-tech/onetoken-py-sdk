@@ -9,7 +9,7 @@ def set_log():
     import logging as syslog
     # syslog.basicConfig()
     ch = syslog.StreamHandler(sys.stdout)
-    ch.setLevel(syslog.INFO)
+    ch.setLevel(syslog.DEBUG)
     ch.setFormatter(
         syslog.Formatter('%(levelname)-.4s [%(asctime)s][qb][%(filename)s:%(lineno)s] %(message)s', '%H:%M:%S'))
     log.addHandler(ch)
@@ -25,6 +25,7 @@ def set_log():
 
         return new_func
 
+    log.debug = wrap(log.debug)
     log.info = wrap(log.info)
     log.warning = wrap(log.warning)
     log.exception = wrap(log.exception)
@@ -36,3 +37,15 @@ set_log()
 def log_level(level):
     print('set log level to {}'.format(level))
     log.setLevel(level)
+
+
+def main():
+    log_level(logging.DEBUG)
+    log.debug('debug log test')
+    log.info('info log test')
+    log.warning('warning log test')
+    log.exception('exception log test')
+
+
+if __name__ == '__main__':
+    main()
