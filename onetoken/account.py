@@ -75,12 +75,13 @@ GOING_TO_DICCONNECT = 'going-to-disconnect'
 
 
 class Account:
-    def __init__(self, symbol: str, api_key, api_secret, loop=None):
+    def __init__(self, symbol: str, api_key, api_secret,session=None, loop=None):
         """
 
         :param symbol:
         :param api_key:
         :param api_secret:
+        :param session: support specified http session
         :param loop:
         """
         self.symbol = symbol
@@ -90,7 +91,10 @@ class Account:
         self.name, self.exchange = get_name_exchange(symbol)
         self.host = get_trans_host(self.exchange)
         self.host_ws = get_ws_host(self.exchange)
-        self.session = aiohttp.ClientSession(loop=loop)
+        if session is None:
+            self.session = aiohttp.ClientSession(loop=loop)
+        else:
+            self.session = session
         self.ws = None
         self.ws_state = IDLE
         self.closed = False
