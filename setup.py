@@ -19,7 +19,7 @@ setup(name='onetoken',
           'docopt',
           'PyJWT',
           'PyYAML',
-          'aiohttp==2.3.10',
+          'aiohttp==3.1.3',
       ],
       zip_safe=False,
       )
