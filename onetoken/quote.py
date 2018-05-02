@@ -95,7 +95,7 @@ class Quote:
             except Exception as e:
                 log.warning('msg error...', e)
         try:
-            self.ws.close()
+            await self.ws.close()
         except:
             pass
 
