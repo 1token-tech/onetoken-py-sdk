@@ -103,8 +103,10 @@ class Account:
         asyncio.ensure_future(self.keep_connection())
 
     def close(self):
+        if self.ws and not self.ws.closed:
+            asyncio.ensure_future(self.ws.close())
         if self.session and not self.session.closed:
-            self.session.close()
+            asyncio.ensure_future(self.session.close())
         self.closed = True
 
     def __del__(self):
@@ -297,7 +299,7 @@ class Account:
         if not q:
             log.warning('order queue for {} is not init yet.'.format(client_oid))
             return
-        while True:
+        while self.is_running:
             try:
                 order = await q.get()
                 log.debug('on update order {}'.format(order))
@@ -404,7 +406,7 @@ class Account:
         self.ws_state = new
 
     async def keep_connection(self):
-        while True:
+        while self.is_running:
             if self.ws_state == GOING_TO_CONNECT:
                 await self.ws_connect()
             elif self.ws_state == READY:
