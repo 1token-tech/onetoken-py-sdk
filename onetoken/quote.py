@@ -7,9 +7,11 @@ import json
 from .logger import log
 from .model import Tick, Contract
 
-HOST = 'wss://api.1token.trade/v1/quote/ws'
+HOST = 'wss://api.1token.trade/v1/ws/tick'
+ALT_HOST = 'wss://1token.trade/api/v1/ws/tick' #连接api.1token.trade遇到ssl证书问题，可以切换至此备用API HOST
 
 REST_HOST = 'https://api.1token.trade/v1'
+ALT_REST_HOST = 'https://1token.trade/api/v1' #连接api.1token.trade遇到ssl证书问题，可以切换至此备用API HOST
 
 
 class Quote:
