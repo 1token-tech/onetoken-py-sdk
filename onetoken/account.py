@@ -75,7 +75,7 @@ GOING_TO_DICCONNECT = 'going-to-disconnect'
 
 
 class Account:
-    def __init__(self, symbol: str, api_key, api_secret,session=None, loop=None):
+    def __init__(self, symbol: str, api_key, api_secret, session=None, loop=None):
         """
 
         :param symbol:
@@ -369,6 +369,16 @@ class Account:
         log.debug('Cancel withdraw use client_wid', client_wid)
         data = {'client_wid': client_wid}
         return await self.api_call('get', '/withdraws', params=data)
+
+    async def get_deposit_list(self, currency):
+        log.debug('Get deposit list', currency)
+        data = {'currency': currency}
+        return await self.api_call('get', '/deposits', params=data)
+
+    async def get_deposit_addr_list(self, currency):
+        log.debug('Get deposit address list', currency)
+        data = {'currency': currency}
+        return await self.api_call('get', '/deposits/addresses', params=data)
 
     @property
     def is_running(self):
