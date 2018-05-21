@@ -7,4 +7,4 @@ from . import autil
 from . import util
 from .rpcutil import ServiceError, HTTPError, Code, Const
 
-__version__ = '0.1.12'
+__version__ = '0.1.13'
