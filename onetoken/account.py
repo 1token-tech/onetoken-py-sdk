@@ -126,8 +126,8 @@ class Account:
     def ws_path(self):
         return self.host_ws
 
-    async def get_pending_list(self):
-        return await self.get_order_list()
+    async def get_pending_list(self, contract=None):
+        return await self.get_order_list(contract)
 
     async def get_order_list(self, contract=None, state=None):
         data = {}
@@ -167,9 +167,13 @@ class Account:
         t = await self.api_call('delete', '/orders', params=data)
         return t
 
-    async def cancel_all(self):
+    async def cancel_all(self, contract=None):
         log.debug('Cancel all')
-        t = await self.api_call('delete', '/orders/all')
+        if contract:
+            data = {'contract': contract}
+        else:
+            data = {}
+        t = await self.api_call('delete', '/orders/all', params=data)
         return t
 
     async def get_info(self, timeout=15) -> Tuple[Union[Info, None], Union[Exception, None]]:
