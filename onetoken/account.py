@@ -13,19 +13,15 @@ from . import autil
 from . import log
 from . import util
 from .model import Info, Order
-
-
-class Config:
-    api_host = 'https://api.1token.trade/v1/trade'
-    ws_host = ''
+from .config import Config
 
 
 def get_trans_host(exg):
-    return '{}/{}'.format(Config.api_host, exg)
+    return '{}/{}'.format(Config.TRADE_HOST, exg)
 
 
 def get_ws_host(exg):
-    return '{}/{}-ws'.format(Config.ws_host, exg)
+    return '{}/{}-ws'.format(Config.TRADE_HOST_WS, exg)
 
 
 def get_name_exchange(symbol):

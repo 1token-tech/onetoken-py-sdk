@@ -19,6 +19,3 @@ async def test_go():
         await asyncio.sleep(1)
     await q.close()
     assert happen
-# async def subscribe_tick(contract, on_update):
-#     c = await get_client()
-#     return await c.subscribe_tick(contract, on_update)

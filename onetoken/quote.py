@@ -6,12 +6,7 @@ import json
 
 from .logger import log
 from .model import Tick, Contract
-
-HOST = 'wss://api.1token.trade/v1/ws/tick'
-ALT_HOST = 'wss://1token.trade/api/v1/ws/tick'  # 连接api.1token.trade遇到ssl证书问题，可以切换至此备用API HOST
-
-REST_HOST = 'https://api.1token.trade/v1'
-ALT_REST_HOST = 'https://1token.trade/api/v1'  # 连接api.1token.trade遇到ssl证书问题，可以切换至此备用API HOST
+from .config import Config
 
 
 class Quote:
@@ -31,13 +26,13 @@ class Quote:
         self.task_list.append(asyncio.ensure_future(self.heart_beat_loop()))
 
     async def ensure_connected(self):
-        log.debug('Connecting to {}'.format(HOST))
+        log.debug('Connecting to {}'.format(Config.TICK_HOST_WS))
         sleep_seconds = 2
         while self.ensure_connection:
             if not self.connected:
                 try:
                     self.sess = aiohttp.ClientSession()
-                    self.ws = await self.sess.ws_connect(HOST + '?gzip=true', autoping=False, timeout=30)
+                    self.ws = await self.sess.ws_connect(Config.TICK_HOST_WS + '?gzip=true', autoping=False, timeout=30)
                     await self.ws.send_json({'uri': 'auth', 'sample-rate': 0})
                 except Exception as e:
                     self.sess.close()
@@ -172,7 +167,7 @@ async def get_client(key='defalut'):
 async def get_last_tick(contract):
     async with aiohttp.ClientSession() as sess:
         from . import autil
-        res, err = await autil.http_go(sess.get, f'{REST_HOST}/quote/single-tick/{contract}')
+        res, err = await autil.http_go(sess.get, f'{Config.HOST_REST}/quote/single-tick/{contract}')
         if not err:
             res = Tick.from_dict(res)
 
@@ -187,7 +182,7 @@ async def subscribe_tick(contract, on_update):
 async def get_contracts(exchange):
     async with aiohttp.ClientSession() as sess:
         from . import autil
-        res, err = await autil.http_go(sess.get, f'{REST_HOST}/basic/contracts?exchange={exchange}')
+        res, err = await autil.http_go(sess.get, f'{Config.HOST_REST}/basic/contracts?exchange={exchange}')
         if not err:
             cons = []
             for x in res:
@@ -201,7 +196,7 @@ async def get_contract(symbol):
     exchange, name = symbol.split('/')
     async with aiohttp.ClientSession() as sess:
         from . import autil
-        res, err = await autil.http_go(sess.get, f'{REST_HOST}/basic/contracts?exchange={exchange}&name={name}')
+        res, err = await autil.http_go(sess.get, f'{Config.HOST_REST}/basic/contracts?exchange={exchange}&name={name}')
         if not err:
             if not res:
                 return None, 'contract-not-exist'
