@@ -88,7 +88,7 @@ class Quote:
                         else:
                             log.warning('unknown message', data)
                 elif msg.type == aiohttp.WSMsgType.CLOSED:
-                    log.debug('closed')
+                    log.warning('closed', msg)
                     break
                 elif msg.type == aiohttp.WSMsgType.ERROR:
                     log.warning('error', msg)
