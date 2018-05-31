@@ -3,4 +3,4 @@ upload:
     - pip install -U invoke setuptools wheel
   script:
     - pwd
-    - inv upload
+    - inv upload || true
