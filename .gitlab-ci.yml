@@ -1,6 +1,6 @@
 upload:
   before_script:
-    - pip install -U invoke
+    - pip install -U invoke setuptools wheel
   script:
     - pwd
     - inv upload
