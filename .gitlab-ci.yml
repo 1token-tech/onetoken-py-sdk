@@ -1,0 +1,4 @@
+upload:
+  script:
+  - pip install -U invoke
+  - inv upload
