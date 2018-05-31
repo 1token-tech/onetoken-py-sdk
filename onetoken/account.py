@@ -42,15 +42,12 @@ def gen_nonce():
     return str(int(time.time() * 1000000))
 
 
-def gen_sign(secret, verb, url, nonce, data):
+def gen_sign(secret, verb, url, nonce, data_str):
     """Generate a request signature compatible with BitMEX."""
     # Parse the url so we can remove the base and extract just the path.
 
-    if data is None:
+    if data_str is None:
         data_str = ''
-    else:
-        assert isinstance(data, dict)
-        data_str = json.dumps(data, sort_keys=True)
 
     parsed_url = urllib.parse.urlparse(url)
     path = parsed_url.path
@@ -403,10 +400,11 @@ class Account:
         url = self.trans_path + endpoint
 
         # print(self.api_secret, method, url, nonce, data)
-        sign = gen_sign(self.api_secret, method, '/{}/{}{}'.format(self.exchange, self.name, endpoint), nonce, data)
+        json_str = json.dumps(data) if data else ''
+        sign = gen_sign(self.api_secret, method, '/{}/{}{}'.format(self.exchange, self.name, endpoint), nonce, json_str)
         headers = {'Api-Nonce': str(nonce), 'Api-Key': self.api_key, 'Api-Signature': sign,
                    'Content-Type': 'application/json'}
-        res, err = await autil.http_go(func, url=url, json=data, params=params, headers=headers, timeout=timeout)
+        res, err = await autil.http_go(func, url=url, data=json_str, params=params, headers=headers, timeout=timeout)
         if err:
             return None, err
         return res, None
