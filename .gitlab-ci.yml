@@ -3,5 +3,4 @@ upload:
     - pip install -U invoke
   script:
     - pwd
-    - cd onetoken-py-sdk
     - inv upload
