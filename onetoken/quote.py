@@ -18,6 +18,7 @@ class Quote:
         self.tick_queue_update = defaultdict(list)
         self.tick_queue = {}
         self.connected = False
+        self.authorized = False
         self.lock = asyncio.Lock()
         self.ensure_connection = ensure_connection
         self.pong = 0
@@ -47,6 +48,13 @@ class Quote:
                     sleep_seconds = 2
                     self.pong = arrow.now().timestamp
                     asyncio.ensure_future(self.on_msg())
+                    wait_for_auth = 0
+                    while not self.authorized and wait_for_auth < 5:
+                        await asyncio.sleep(0.1)
+                        wait_for_auth += 0.1
+                    if wait_for_auth >= 5:
+                        log.warning('wait for auth success timeout')
+                        await self.ws.close()
                     async with self.lock:
                         cons = list(self.tick_queue_update.keys())
                         if cons:
@@ -85,6 +93,7 @@ class Quote:
                             self.pong = arrow.now().timestamp
                         elif data['uri'] == 'auth':
                             log.info(data)
+                            self.authorized = True
                         else:
                             log.warning('unknown message', data)
                 elif msg.type == aiohttp.WSMsgType.CLOSED:
@@ -101,6 +110,7 @@ class Quote:
             pass
 
         self.connected = False
+        self.authorized = False
         log.warning('ws was disconnected...')
 
     def parse_tick(self, data):
