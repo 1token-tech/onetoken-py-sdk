@@ -71,9 +71,9 @@ class Account:
     def __init__(self, symbol: str, api_key, api_secret, session=None, loop=None):
         """
 
-        :param symbol:
-        :param api_key:
-        :param api_secret:
+        :param symbol:  account symbol, binance/test_user1
+        :param api_key:  ot-key in 1token
+        :param api_secret: ot-secret in 1token
         :param session: support specified http session
         :param loop:
         """
