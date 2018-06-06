@@ -124,7 +124,7 @@ class Quote:
 
     async def subscribe_tick(self, contract, on_update=None):
         log.info('subscribe tick', contract)
-        while not self.connected:
+        while not self.connected or not self.authorized:
             await asyncio.sleep(1)
         async with self.lock:
             try:
