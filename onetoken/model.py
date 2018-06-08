@@ -134,7 +134,11 @@ class Tick:
         if isinstance(dict_or_str, str):
             return cls.from_dict(json.loads(dict_or_str))
         d = dict_or_str
+        exg_tm = d.get('exchange_time', None)
+        if exg_tm is not None:
+            exg_tm = arrow.get(exg_tm)
         t = Tick(time=arrow.get(d['time']),
+                 exchange_time=exg_tm,
                  # contract=ContractApi.get_by_symbol(d['contract']),
                  contract=d['contract'],
                  volume=d['volume'],
