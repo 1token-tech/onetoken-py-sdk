@@ -429,8 +429,8 @@ class Account:
     async def ws_connect(self):
         self.set_ws_state(CONNECTING)
         nonce = gen_nonce()
-        sign = gen_sign(self.api_secret, 'GET', '/ws', nonce, {'Api-meta': self.name})
-        headers = {'Api-Nonce': str(nonce), 'Api-Key': self.api_key, 'Api-Signature': sign, 'Api-meta': self.name,
+        sign = gen_sign(self.api_secret, 'GET', '/ws', nonce, {'Api-Meta': self.name})
+        headers = {'Api-Nonce': str(nonce), 'Api-Key': self.api_key, 'Api-Signature': sign, 'Api-Meta': self.name,
                    'Content-Type': 'application/json'}
         url = self.ws_path
         try:
