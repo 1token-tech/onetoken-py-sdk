@@ -8,9 +8,9 @@ if not version:
     raise RuntimeError('Cannot find version information')
 
 setup(name='onetoken',
-      author='QbTrade',
-      url='https://github.com/qbtrade/onetoken',
-      author_email='markx914@gmail.com',
+      author='OneToken',
+      url='https://github.com/1token-trade/onetoken-py-sdk',
+      author_email='admin@1token.trade',
       packages=find_packages(),
       version=version,
       description='OneToken Trade System Python SDK',

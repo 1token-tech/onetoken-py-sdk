@@ -68,7 +68,7 @@ GOING_TO_DICCONNECT = 'going-to-disconnect'
 
 
 class Account:
-    def __init__(self, symbol: str, api_key, api_secret, session=None, loop=None):
+    def __init__(self, symbol: str, api_key=None, api_secret=None, session=None, loop=None):
         """
 
         :param symbol:  account symbol, binance/test_user1
@@ -78,8 +78,11 @@ class Account:
         :param loop:
         """
         self.symbol = symbol
-        self.api_key = api_key
-        self.api_secret = api_secret
+        if api_key is None and api_secret is None:
+            self.api_key, self.api_secret = self.load_ot_from_config_file()
+        else:
+            self.api_key = api_key
+            self.api_secret = api_secret
         log.debug('async account init {}'.format(symbol))
         self.name, self.exchange = get_name_exchange(symbol)
         self.host = get_trans_host(self.exchange)
@@ -502,3 +505,21 @@ class Account:
         keys = self.sub_queue.keys()
         if not keys and self.ws_state != IDLE:
             self.set_ws_state(GOING_TO_DICCONNECT, 'user disconnect')
+
+    @staticmethod
+    def load_ot_from_config_file():
+        import os
+        config = os.path.expanduser('~/.onetoken/config.yml')
+        if os.path.isfile(config):
+            log.info(f'load ot_key and ot_secret from {config}')
+            import yaml
+            js = yaml.safe_load(open(config).read())
+            ot_key, ot_secret = js.get('ot_key'), js.get('ot_secret')
+            if ot_key is None:
+                ot_key = js.get('api_key')
+            if ot_secret is None:
+                ot_secret = js.get('api_secret')
+            return ot_key, ot_secret
+        else:
+            log.warning(f'load {config} fail')
+            return None, None
