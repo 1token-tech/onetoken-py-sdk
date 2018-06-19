@@ -134,6 +134,7 @@ class Account:
         t = await self.api_call('get', '/orders', params=data)
         return t
 
+    # TODO can be simplified @liuzk oid can be removed
     async def cancel_use_client_oid(self, oid, *oids):
         """
         cancel order use client oid, support batch
