@@ -36,7 +36,10 @@ class Quote:
                     self.ws = await self.sess.ws_connect(Config.TICK_HOST_WS + '?gzip=true', autoping=False, timeout=30)
                     await self.ws.send_json({'uri': 'auth', 'sample-rate': 0})
                 except Exception as e:
-                    self.sess.close()
+                    try:
+                        await self.sess.close()
+                    except:
+                        log.exception('close session fail')
                     self.sess = None
                     self.ws = None
                     log.warning(f'try connect to WebSocket failed, sleep for {sleep_seconds} seconds...', e)
