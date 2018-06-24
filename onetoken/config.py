@@ -5,9 +5,9 @@ class Config:
     TICK_HOST_WS = 'wss://1token.trade/api/v1/ws/tick'
 
     @classmethod
-    def change_host(cls, target='1token.trade/', nossl=False):
+    def change_host(cls, target='1token.trade/', match='1token.trade/', nossl=False):
         for item in ['TRADE_HOST', 'TRADE_HOST_WS', 'TICK_HOST_WS', 'HOST_REST']:
-            new = getattr(cls, item).replace('1token.trade/', target)
+            new = getattr(cls, item).replace(match, target)
             if nossl:
                 new = new.replace('https://', 'http://')
                 new = new.replace('wss://', 'ws://')
