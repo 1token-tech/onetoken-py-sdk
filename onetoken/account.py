@@ -466,7 +466,7 @@ class Account:
             data = json.loads(msg)
             log.debug(data)
             if 'action' not in data or 'status' not in data:
-                log.warning('unexcept msg get', data)
+                log.warning('unexpected msg get', data)
                 return
             action = data['action']
             status = data['status']
@@ -487,7 +487,7 @@ class Account:
                     # todo 这里处理order 拿到 error 的情况
                     pass
         except Exception as e:
-            log.warning('unexcept msg format', msg, e)
+            log.warning('unexpected msg format', msg, e)
 
     async def subscribe_order(self):
         if 'order' not in self.sub_queue:
