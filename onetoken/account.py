@@ -514,7 +514,7 @@ class Account:
                         return
                     info = data['data']
                     info = Info(info)
-                    for handler in self.sub_queue['info']:
+                    for handler in self.sub_queue['info'].values():
                         try:
                             await handler(info)
                         except:
