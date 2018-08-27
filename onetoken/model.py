@@ -30,9 +30,9 @@ class Tick:
         if asks:
             self.asks = sorted(asks, key=lambda x: x['price'])
         for item in self.bids:
-            assert 'price' in item and 'volume' in item and len(item) == 2
+            assert 'price' in item and 'volume' in item
         for item in self.asks:
-            assert 'price' in item and 'volume' in item and len(item) == 2
+            assert 'price' in item and 'volume' in item
             # self.asks = asks
 
     # last as an candidate of last
