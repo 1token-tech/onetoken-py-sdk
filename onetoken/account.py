@@ -86,6 +86,11 @@ class Account:
             self.api_secret = api_secret
         log.debug('async account init {}'.format(symbol))
         self.name, self.exchange = get_name_exchange(symbol)
+        if '/' in self.name:
+            self.name, margin_contract = self.name.split('/', 1)
+            self.margin_contract = f'{self.exchange}/{margin_contract}'
+        else:
+            self.margin_contract = None
         self.host = get_trans_host(self.exchange)
         self.host_ws = get_ws_host(self.exchange, self.name)
         if session is None:
@@ -182,7 +187,11 @@ class Account:
             return None, err
         if not isinstance(y, dict):
             return None, ValueError(f'{y} not dict')
-        return Info(y), None
+        acc_info = Info(y)
+        if self.margin_contract is not None:
+            pos_symbol = self.margin_contract.split('/', 1)[-1]
+            return acc_info.get_margin_acc_info(pos_symbol)
+        return acc_info, None
 
     async def place_and_cancel(self, con, price, bs, amount, sleep, options=None):
 
@@ -390,6 +399,41 @@ class Account:
         log.debug('Get deposit address list', currency)
         data = {'currency': currency}
         return await self.api_call('get', '/deposits/addresses', params=data)
+
+    async def get_loan_records(self, contract=None):
+        if contract is None:
+            contract = self.margin_contract
+        log.debug('Get loan orders', contract)
+        data = {'contract': contract}
+        return await self.api_call('get', '/loan-records', params=data)
+
+    async def borrow(self, currency, amount, contract=None):
+        if contract is None:
+            contract = self.margin_contract
+        log.debug('Borrow', contract, currency, amount)
+        data = {'contract': contract, 'currency': currency, 'amount': amount}
+        return await self.api_call('post', '/borrow', data=data)
+
+    async def repay(self, currency, amount, contract=None):
+        if contract is None:
+            contract = self.margin_contract
+        log.debug('Repay', contract, currency, amount)
+        data = {'contract': contract, 'currency': currency, 'amount': amount}
+        return await self.api_call('post', '/return', data=data)
+
+    async def margin_transfer_in(self, currency, amount, contract=None):
+        if contract is None:
+            contract = self.margin_contract
+        log.debug('Margin transfer in', contract, currency, amount)
+        data = {'contract': contract, 'currency': currency, 'amount': amount, 'target': 'margin'}
+        return await self.api_call('post', '/assets-internal', data=data)
+
+    async def margin_transfer_out(self, currency, amount, contract=None):
+        if contract is None:
+            contract = self.margin_contract
+        log.debug('Margin transfer out', contract, currency, amount)
+        data = {'contract': contract, 'currency': currency, 'amount': amount, 'target': 'spot'}
+        return await self.api_call('post', '/assets-internal', data=data)
 
     @property
     def is_running(self):

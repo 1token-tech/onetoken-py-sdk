@@ -206,6 +206,30 @@ class Contract:
                    data['id'], data['min_amount'], data['unit_amount'])
 
 
+class Candle:
+    def __init__(self, time, open, high, low, close, volume, contract, duration):
+        self.contract = contract
+        self.time = time
+        self.open = open
+        self.high = high
+        self.low = low
+        self.close = close
+        self.volume = volume
+        self.duration = duration
+
+    def __str__(self):
+        return '<Candle-{}:{}-{} {} {} {} {} {}>'.format(self.duration, self.contract, self.time.strftime('%H:%M:%S'),
+                                                self.open, self.high, self.low, self.close, self.volume)
+
+    def __repr__(self):
+        return self.__str__()
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(arrow.get(data['time']), data['open'], data['high'], data['low'],
+                   data['close'], data['volume'], data['contract'], data['duration'])
+
+
 class Info:
     def __init__(self, data):
         assert isinstance(data, dict)
@@ -225,6 +249,43 @@ class Info:
             return float(self.position_dict[pos_symbol]['total_amount'])
         else:
             return 0.0
+
+    def get_margin_acc_info(self, pos_symbol):
+        if pos_symbol not in self.position_dict:
+            return None
+        pos = self.position_dict[pos_symbol]
+        coin, base = pos_symbol.split('.')
+        data_dict = {
+            'balance': pos['value_cny'],
+            'cash': pos['value_cny_base'] if base == 'usdt' else 0,
+            'market_value': pos['market_value'],
+            'market_value_detail': {
+                coin: pos['market_value_coin'],
+                base: pos['market_value_base']
+            },
+            'position': [
+                {
+                    'contract': coin,
+                    'total_amount': pos['amount_coin'],
+                    'available': pos['available_coin'],
+                    'frozen': pos['frozen_coin'],
+                    'loan': pos['loan_coin'],
+                    'market_value': pos['market_value_coin'],
+                    'value_cny': pos['value_cny_coin']
+                },
+                {
+                    'contract': base,
+                    'total_amount': pos['amount_base'],
+                    'available': pos['available_base'],
+                    'frozen': pos['frozen_base'],
+                    'loan': pos['loan_base'],
+                    'market_value': pos['market_value_base'],
+                    'value_cny': pos['value_cny_base']
+                }
+            ]
+        }
+        return Info(data_dict)
+
 
     def __repr__(self):
         return json.dumps(self.data)
