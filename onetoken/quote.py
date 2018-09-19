@@ -33,6 +33,8 @@ class Quote:
         while self.ensure_connection:
             if not self.connected:
                 try:
+                    if self.sess and not self.sess.closed:
+                        await self.sess.close()
                     self.sess = aiohttp.ClientSession()
                     self.ws = await self.sess.ws_connect(self.ws_url, autoping=False, timeout=30)
                     await self.ws.send_json({'uri': 'auth'})

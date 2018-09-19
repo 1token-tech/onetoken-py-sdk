@@ -190,7 +190,7 @@ class Account:
         acc_info = Info(y)
         if self.margin_contract is not None:
             pos_symbol = self.margin_contract.split('/', 1)[-1]
-            return acc_info.get_margin_acc_info(pos_symbol)
+            return acc_info.get_margin_acc_info(pos_symbol), None
         return acc_info, None
 
     async def place_and_cancel(self, con, price, bs, amount, sleep, options=None):
