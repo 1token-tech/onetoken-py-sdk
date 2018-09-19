@@ -414,11 +414,9 @@ class Account:
         data = {'contract': contract, 'currency': currency, 'amount': amount}
         return await self.api_call('post', '/borrow', data=data)
 
-    async def repay(self, currency, amount, contract=None):
-        if contract is None:
-            contract = self.margin_contract
-        log.debug('Repay', contract, currency, amount)
-        data = {'contract': contract, 'currency': currency, 'amount': amount}
+    async def repay(self, exchange_loan_id, currency, amount):
+        log.debug('Repay', exchange_loan_id, currency, amount)
+        data = {'exchange_loan_id': exchange_loan_id, 'currency': currency, 'amount': amount}
         return await self.api_call('post', '/return', data=data)
 
     async def margin_transfer_in(self, currency, amount, contract=None):
