@@ -37,7 +37,7 @@ async def http_go(func, url, timeout=15, method='json', accept_4xx=False, *args,
     assert not accept_4xx
     assert method in ['json', 'text', 'raw']
     try:
-        if 'params' not in kwargs:
+        if 'params' not in kwargs or kwargs['params'] is None:
             kwargs['params'] = {}
         params = kwargs['params']
         params['source'] = 'onetoken-py-sdk'
