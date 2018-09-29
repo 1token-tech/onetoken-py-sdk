@@ -263,6 +263,7 @@ class Info:
                 coin: pos['market_value_coin'],
                 base: pos['market_value_base']
             },
+            'risk_rate': pos['risk_rate'],
             'position': [
                 {
                     'contract': coin,
