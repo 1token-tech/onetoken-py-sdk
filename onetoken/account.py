@@ -542,15 +542,13 @@ class Account:
             if action == 'pong':
                 self.last_pong = datetime.now().timestamp()
                 return
-            if action == 'connection':
-                if data.get('status', 'ok') == 'ok':
+            if action == 'status':
+                if data.get('code', None) == 'connected':
                     self.set_ws_state(READY, 'Connected and auth passed.')
                     for key in self.sub_queue.keys():
                         await self.ws.send_json({'uri': 'sub-{}'.format(key)})
                 else:
                     self.set_ws_state(GOING_TO_CONNECT, data['message'])
-            if action == 'status':
-                log.info('ws status updated')
             elif action == 'info':
                 if data.get('status', 'ok') == 'ok':
                     if 'info' not in self.sub_queue:
