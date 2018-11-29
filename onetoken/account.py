@@ -542,16 +542,17 @@ class Account:
             if action == 'pong':
                 self.last_pong = datetime.now().timestamp()
                 return
-            status = data['status']
             if action == 'connection':
-                if status == 'ok':
+                if data.get('status', 'ok') == 'ok':
                     self.set_ws_state(READY, 'Connected and auth passed.')
                     for key in self.sub_queue.keys():
                         await self.ws.send_json({'uri': 'sub-{}'.format(key)})
                 else:
                     self.set_ws_state(GOING_TO_CONNECT, data['message'])
+            if action == 'status':
+                log.info('ws status updated')
             elif action == 'info':
-                if status == 'ok':
+                if data.get('status', 'ok') == 'ok':
                     if 'info' not in self.sub_queue:
                         return
                     info = data['data']
@@ -562,7 +563,7 @@ class Account:
                         except:
                             log.exception('handle info error')
             if action == 'order' and 'order' in self.sub_queue:
-                if status == 'ok':
+                if data.get('status', 'ok') == 'ok':
                     for order in data['data']:
                         client_oid = order['client_oid']
                         if client_oid in self.sub_queue['order']:
