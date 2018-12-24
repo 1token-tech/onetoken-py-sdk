@@ -302,7 +302,7 @@ class Account:
         if tags:
             data['tags'] = ','.join(['{}:{}'.format(k, v) for k, v in tags.items()])
         if options:
-            data['options'] = json.dumps(options)
+            data['options'] = options
         res = await self.api_call('post', '/orders', data=data)
         log.debug(res)
         return res
