@@ -466,7 +466,7 @@ class Account:
         return res, None
 
     def set_ws_state(self, new, reason=''):
-        log.debug(f'set ws state from {self.ws_state} to {new}', reason)
+        log.info(f'set ws state from {self.ws_state} to {new}', reason)
         self.ws_state = new
 
     async def keep_connection(self):
@@ -542,8 +542,8 @@ class Account:
             if action == 'pong':
                 self.last_pong = datetime.now().timestamp()
                 return
-            if action == 'status':
-                if data.get('code', None) == 'connected':
+            if action in ['connection', 'status']:
+                if data.get('code', data.get('status', None)) == 'ok':
                     self.set_ws_state(READY, 'Connected and auth passed.')
                     for key in self.sub_queue.keys():
                         await self.ws.send_json({'uri': 'sub-{}'.format(key)})
