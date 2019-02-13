@@ -17,6 +17,16 @@ def dumper(obj):
     return obj
 
 
+_aiohttp_sess = None
+
+
+def get_aiohttp_session():
+    global _aiohttp_sess
+    if _aiohttp_sess is None:
+        _aiohttp_sess = aiohttp.ClientSession()
+    return _aiohttp_sess
+
+
 async def http_go(func, url, timeout=15, method='json', accept_4xx=False, *args, **kwargs):
     """
 

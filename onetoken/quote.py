@@ -239,36 +239,35 @@ async def subscribe_candle(contract, duration, on_update):
 
 
 async def get_last_tick(contract):
-    async with aiohttp.ClientSession() as sess:
-        from . import autil
-        res, err = await autil.http_go(sess.get, f'{Config.HOST_REST}/quote/single-tick/{contract}')
-        if not err:
-            res = Tick.from_dict(res)
-
-        return res, err
+    from . import autil
+    sess = autil.get_aiohttp_session()
+    res, err = await autil.http_go(sess.get, f'{Config.HOST_REST}/quote/single-tick/{contract}')
+    if not err:
+        res = Tick.from_dict(res)
+    return res, err
 
 
 async def get_contracts(exchange):
-    async with aiohttp.ClientSession() as sess:
-        from . import autil
-        res, err = await autil.http_go(sess.get, f'{Config.HOST_REST}/basic/contracts?exchange={exchange}')
-        if not err:
-            cons = []
-            for x in res:
-                con = Contract.from_dict(x)
-                cons.append(con)
-            return cons, err
-        return res, err
+    from . import autil
+    sess = autil.get_aiohttp_session()
+    res, err = await autil.http_go(sess.get, f'{Config.HOST_REST}/basic/contracts?exchange={exchange}')
+    if not err:
+        cons = []
+        for x in res:
+            con = Contract.from_dict(x)
+            cons.append(con)
+        return cons, err
+    return res, err
 
 
 async def get_contract(symbol):
     exchange, name = symbol.split('/')
-    async with aiohttp.ClientSession() as sess:
-        from . import autil
-        res, err = await autil.http_go(sess.get, f'{Config.HOST_REST}/basic/contracts?exchange={exchange}&name={name}')
-        if not err:
-            if not res:
-                return None, 'contract-not-exist'
-            con = Contract.from_dict(res[0])
-            return con, err
-        return res, err
+    from . import autil
+    sess = autil.get_aiohttp_session()
+    res, err = await autil.http_go(sess.get, f'{Config.HOST_REST}/basic/contracts?exchange={exchange}&name={name}')
+    if not err:
+        if not res:
+            return None, 'contract-not-exist'
+        con = Contract.from_dict(res[0])
+        return con, err
+    return res, err
