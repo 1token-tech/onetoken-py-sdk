@@ -133,23 +133,19 @@ class Account:
     async def get_pending_list(self, contract=None):
         return await self.get_order_list(contract)
 
-    async def get_order_list(self, contract=None, state=None):
+    async def get_order_list(self, contract=None, state=None, source=None):
         data = {}
         if contract:
             data['contract'] = contract
         if state:
             data['state'] = state
+        if source is not None:
+            data['helper'] = source
         t = await self.api_call('get', '/orders', params=data)
         return t
 
     async def get_order_list_from_db(self, contract=None, state=None):
-        data = {}
-        if contract:
-            data['contract'] = contract
-        if state:
-            data['state'] = state
-        t = await self.api_call('get', '/orders?helper=db', params=data)
-        return t
+        return await self.get_order_list(contract, state, source='db')
 
     # TODO can be simplified @liuzk oid can be removed
     async def cancel_use_client_oid(self, oid, *oids):
@@ -346,7 +342,7 @@ class Account:
 
         del self.sub_queue['order'][client_oid]
 
-    async def get_dealt_trans(self, con=None):
+    async def get_dealt_trans(self, con=None, source=None):
         """
         get recent dealt transactions
         :param con:
@@ -356,6 +352,8 @@ class Account:
         data = {}
         if con is not None:
             data['contract'] = con
+        if source is not None:
+            data['helper'] = source
         res = await self.api_call('get', '/trans', params=data)
         log.debug(res)
         return res
@@ -366,13 +364,7 @@ class Account:
        :param con:
        :return:
        """
-        log.debug('Get dealt trans', con=con)
-        data = {}
-        if con is not None:
-            data['contract'] = con
-        res = await self.api_call('get', '/trans?helper=db', params=data)
-        log.debug(res)
-        return res
+        return await self.get_dealt_trans(con, source='db')
 
     async def post_withdraw(self, currency, amount, address, fee=None, client_wid=None, options=None):
         log.debug('Post withdraw', currency=currency, amount=amount, address=address, fee=fee, client_wid=client_wid)
