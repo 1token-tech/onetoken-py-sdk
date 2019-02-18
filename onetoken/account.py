@@ -142,6 +142,15 @@ class Account:
         t = await self.api_call('get', '/orders', params=data)
         return t
 
+    async def get_order_list_from_db(self, contract=None, state=None):
+        data = {}
+        if contract:
+            data['contract'] = contract
+        if state:
+            data['state'] = state
+        t = await self.api_call('get', '/orders?helper=db', params=data)
+        return t
+
     # TODO can be simplified @liuzk oid can be removed
     async def cancel_use_client_oid(self, oid, *oids):
         """
@@ -348,6 +357,20 @@ class Account:
         if con is not None:
             data['contract'] = con
         res = await self.api_call('get', '/trans', params=data)
+        log.debug(res)
+        return res
+
+    async def get_dealt_trans_from_db(self, con=None):
+        """
+       get recent dealt transactions
+       :param con:
+       :return:
+       """
+        log.debug('Get dealt trans', con=con)
+        data = {}
+        if con is not None:
+            data['contract'] = con
+        res = await self.api_call('get', '/trans?helper=db', params=data)
         log.debug(res)
         return res
 
