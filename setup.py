@@ -15,6 +15,7 @@ setup(name='onetoken',
       author_email='admin@1token.trade',
       packages=find_packages(),
       version=version,
+      python_requires=">=3.6",
       description='OneToken Trade System Python SDK',
       classifiers=[
           'Development Status :: 4 - Beta',
