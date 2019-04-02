@@ -8,4 +8,4 @@ from . import util
 from .rpcutil import ServiceError, HTTPError, Code, Const
 from .config import Config
 
-__version__ = '0.2.190218'
+__version__ = '0.2.190402'
