@@ -558,7 +558,7 @@ class Account:
                 self.last_pong = datetime.now().timestamp()
                 return
             if action in ['connection', 'status']:
-                if data.get('code', data.get('status', None)) == 'ok':
+                if data.get('code', data.get('status', None)) in ['ok', 'connected']:
                     self.set_ws_state(READY, 'Connected and auth passed.')
                     for key in self.sub_queue.keys():
                         await self.ws.send_json({'uri': 'sub-{}'.format(key)})
