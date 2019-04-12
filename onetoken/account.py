@@ -585,7 +585,7 @@ class Account:
                         if exg_oid not in self.sub_queue['order']:
                             q =  asyncio.Queue()
                             self.sub_queue['order'][exg_oid] = q
-                            asyncio.ensure_future(self.ensure_order_dequeued(q))
+                            asyncio.ensure_future(self.ensure_order_dequeued(exg_oid))
                         self.sub_queue['order'][exg_oid].put_nowait(order)
                         if '*' in self.sub_queue['order']:
                             h = self.sub_queue['order']['*']
@@ -596,11 +596,13 @@ class Account:
         except Exception as e:
             log.warning('unexpected msg format', msg, e)
 
-    async def ensure_order_dequeued(self, q):
-        timeout = 60
+    async def ensure_order_dequeued(self, exg_oid):
+        timeout = 10
         bg = datetime.now()
-        while not q.empty():
+        while 'order' in self.sub_queue and exg_oid in self.sub_queue['order'] \
+                and not self.sub_queue['order'][exg_oid].empty():
             if (datetime.now() - bg).total_seconds() > timeout:
+                del self.sub_queue['order'][exg_oid]
                 break
             await asyncio.sleep(2)
 
