@@ -286,18 +286,6 @@ class Account:
         if client_oid is None:
             client_oid = util.rand_client_oid(con)
 
-        if on_update:
-            if not self.ws_support:
-                log.warning('ws push not supported for this exchange {}'.format(self.exchange))
-            else:
-                if self.ws_state != READY:
-                    log.warning(f'ws connection is {self.ws_state}/{READY}, on_update may failed.')
-                if 'order' not in self.sub_queue:
-                    await self.subscribe_orders()
-
-                self.sub_queue['order'][client_oid] = asyncio.Queue()
-                asyncio.ensure_future(self.handle_order_q(client_oid, on_update))
-
         data = {'contract': con,
                 'price': price,
                 'bs': bs,
@@ -310,15 +298,29 @@ class Account:
             data['options'] = options
         res = await self.api_call('post', '/orders', data=data)
         log.debug(res)
+        if on_update:
+            if not self.ws_support:
+                log.warning('ws push not supported for this exchange {}'.format(self.exchange))
+            else:
+                if self.ws_state != READY:
+                    log.warning(f'ws connection is {self.ws_state}/{READY}, on_update may failed.')
+                if 'order' not in self.sub_queue:
+                    await self.subscribe_orders()
+                ex, err = res
+                if ex and 'exchange_oid' in ex:
+                    exg_oid = ex['exchange_oid']
+                    if exg_oid not in self.sub_queue['order']: 
+                        self.sub_queue['order'][exg_oid] = asyncio.Queue()
+                    asyncio.ensure_future(self.handle_order_q(exg_oid, on_update))
         return res
 
-    async def handle_order_q(self, client_oid, on_update):
+    async def handle_order_q(self, exg_oid, on_update):
         if 'order' not in self.sub_queue:
             log.warning('order was not subscribed, on_update will not be handled.')
             return
-        q = self.sub_queue['order'].get(client_oid, None)
+        q = self.sub_queue['order'].get(exg_oid, None)
         if not q:
-            log.warning('order queue for {} is not init yet.'.format(client_oid))
+            log.warning('order queue for {} is not init yet.'.format(exg_oid))
             return
         while self.is_running:
             try:
@@ -335,12 +337,12 @@ class Account:
                     except:
                         log.exception('handle info error')
                 if order['status'] in Order.END_STATUSES:
-                    log.debug('{} finished with status {}'.format(order['client_oid'], order['status']))
+                    log.debug('{} finished with status {}'.format(order['exchange_oid'], order['status']))
                     break
             except:
                 log.exception('handle q failed.')
 
-        del self.sub_queue['order'][client_oid]
+        del self.sub_queue['order'][exg_oid]
 
     async def get_dealt_trans(self, con=None, source=None):
         """
@@ -578,14 +580,29 @@ class Account:
             if action == 'order' and 'order' in self.sub_queue:
                 if data.get('status', 'ok') == 'ok':
                     for order in data['data']:
-                        client_oid = order['client_oid']
-                        if client_oid in self.sub_queue['order']:
-                            self.sub_queue['order'][client_oid].put_nowait(order)
+                        exg_oid = order['exchange_oid']
+                        log.debug('order info updating', exg_oid, status=order['status'])
+                        if exg_oid not in self.sub_queue['order']:
+                            q =  asyncio.Queue()
+                            self.sub_queue['order'][exg_oid] = q
+                            asyncio.ensure_future(self.ensure_order_dequeued(q))
+                        self.sub_queue['order'][exg_oid].put_nowait(order)
+                        if '*' in self.sub_queue['order']:
+                            h = self.sub_queue['order']['*']
+                            await h(order)
                 else:
                     # todo 这里处理order 拿到 error 的情况
                     log.warning('order update error message', data)
         except Exception as e:
             log.warning('unexpected msg format', msg, e)
+
+    async def ensure_order_dequeued(self, q):
+        timeout = 60
+        bg = datetime.now()
+        while not q.empty():
+            if (datetime.now() - bg).total_seconds() > timeout:
+                break
+            await asyncio.sleep(2)
 
     async def subscribe_info(self, handler, handler_name=None):
         if not self.ws_support:
@@ -612,9 +629,11 @@ class Account:
             if not self.sub_queue and self.ws_state != IDLE:
                 self.set_ws_state(GOING_TO_DICCONNECT, 'subscribe nothing')
 
-    async def subscribe_orders(self):
+    async def subscribe_orders(self, handler=None):
         if 'order' not in self.sub_queue:
             self.sub_queue['order'] = {}
+        if handler is not None:
+            self.sub_queue['order']['*'] = handler
         if self.ws_state == READY:
             await self.ws.send_json({'uri': 'sub-order'})
         elif self.ws_state == IDLE:
