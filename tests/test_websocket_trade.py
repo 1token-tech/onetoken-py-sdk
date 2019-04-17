@@ -18,5 +18,10 @@ async def test_trade_subscribe():
         print(args, kwargs)
 
     await o.subscribe_info(h)
-    for _ in range(10):
-        await asyncio.sleep(1)
+
+
+if __name__ == '__main__':
+    import asyncio
+
+    asyncio.get_event_loop().run_until_complete(test_trade_subscribe())
+    asyncio.get_event_loop().run_forever()
