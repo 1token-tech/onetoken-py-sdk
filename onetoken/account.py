@@ -1,6 +1,6 @@
 import asyncio
 import json
-import urllib
+import urllib.parse
 import hmac
 from typing import Union, Tuple
 from datetime import datetime
