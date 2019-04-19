@@ -1,5 +1,7 @@
+import functools
 import sys
 import logging
+from pathlib import Path
 
 log = logging.getLogger('ots')
 
@@ -11,16 +13,19 @@ def set_log():
     ch = logging.StreamHandler(sys.stdout)
     ch.setLevel(logging.DEBUG)
     ch.setFormatter(
-        logging.Formatter('%(levelname)-.7s [%(asctime)s][qb][%(filename)s:%(lineno)s] %(message)s', '%H:%M:%S'))
+        logging.Formatter('%(levelname)-.7s [%(asctime)s][1token]%(message)s', '%H:%M:%S'))
     log.addHandler(ch)
     log.setLevel(logging.INFO)
 
     def wrap(orig):
+        @functools.wraps(orig)
         def new_func(*args, **kwargs):
-            # print('-------wrapper----------', args, kwargs)
             left = ' '.join(str(x) for x in args)
             right = ' '.join('{}={}'.format(k, v) for k, v in kwargs.items())
             new = ' '.join(filter(None, [left, right]))
+            import inspect
+            r = inspect.stack()[1]
+            new = f'[{Path(r.filename).name}:{r.lineno}] {new}'
             orig(new)
 
         return new_func

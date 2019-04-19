@@ -99,6 +99,8 @@ class Quote:
                         elif data['uri'] == 'auth':
                             log.info(data)
                             self.authorized = True
+                        elif data['uri'] == 'subscribe-single-tick-verbose':
+                            log.info(data)
                         else:
                             q_key, parsed_data = self.data_parser(data)
                             if q_key is None:
@@ -133,7 +135,7 @@ class Quote:
         async with self.lock:
             try:
                 await self.ws.send_json(sub_data)
-                print('sub data', sub_data)
+                log.info('sub data', sub_data)
                 if q_key not in self.data_queue:
                     self.data_queue[q_key] = asyncio.Queue()
                     if on_update:
