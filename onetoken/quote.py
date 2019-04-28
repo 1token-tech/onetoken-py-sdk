@@ -101,6 +101,8 @@ class Quote:
                             self.authorized = True
                         elif data['uri'] == 'subscribe-single-tick-verbose':
                             log.info(data)
+                        elif data['uri'] == 'subscribe-single-candle':
+                            log.info(data)
                         else:
                             q_key, parsed_data = self.data_parser(data)
                             if q_key is None:
@@ -132,6 +134,11 @@ class Quote:
         sub_data = {'uri': uri}
         sub_data.update(kwargs)
         q_key = json.dumps(sub_data, sort_keys=True)
+        if uri == 'subscribe-single-candle':
+            sub_data['uri'] = 'single-candle'
+            q_key = json.dumps(sub_data, sort_keys=True)
+            sub_data['uri'] = 'subscribe-single-candle'
+
         async with self.lock:
             try:
                 await self.ws.send_json(sub_data)
@@ -190,12 +197,14 @@ class TickQuote(Quote):
 class CandleQuote(Quote):
     def __init__(self, key):
         super().__init__(key, Config.CANDLE_HOST_WS, self.parse_candle)
-        self.channel = 'subscribe-candle'
+        self.channel = 'single-candle'
         self.authorized = True
 
     def parse_candle(self, data):
         try:
-            candle = Candle.from_dict(data['data'])
+            if 'data' in data:
+                data = data['data']
+            candle = Candle.from_dict(data)
             q_key = json.dumps({'contract': candle.contract, 'duration': candle.duration, 'uri': self.channel}, sort_keys=True)
             return q_key, candle
         except Exception as e:
@@ -203,7 +212,7 @@ class CandleQuote(Quote):
         return None, None
 
     async def subscribe_candle(self, contract, duration, on_update):
-        await self.subscribe_data(self.channel, on_update=on_update, contract=contract, duration=duration)
+        await self.subscribe_data('subscribe-single-candle', on_update=on_update, contract=contract, duration=duration)
 
 
 _client_pool = {}
