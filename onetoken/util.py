@@ -5,7 +5,7 @@ import arrow
 
 def rand_id():
     # return uuid.uuid4()
-    r = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(32))
+    r = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(10))
     r = r[5:]
     return r
 
