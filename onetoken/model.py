@@ -62,6 +62,10 @@ class Tick:
         b = self.asks[0]['price'] * self.bids[0]['volume']
         return (a + b) / (self.asks[0]['volume'] + self.bids[0]['volume'])
 
+    @property
+    def middle(self):
+        return (self.ask1 + self.bid1) / 2
+
     def get_interest_side(self, bs):
         if bs == 's':
             return self.bids
@@ -207,7 +211,7 @@ class Contract:
 
 
 class Candle:
-    def __init__(self, time, open, high, low, close, volume, contract, duration):
+    def __init__(self, time, open, high, low, close, volume, contract, duration, amount=None):
         self.contract = contract
         self.time = time
         self.open = open
@@ -215,11 +219,12 @@ class Candle:
         self.low = low
         self.close = close
         self.volume = volume
+        self.amount = amount
         self.duration = duration
 
     def __str__(self):
-        return '<Candle-{}:{}-{} {} {} {} {} {}>'.format(self.duration, self.contract, self.time.strftime('%H:%M:%S'),
-                                                self.open, self.high, self.low, self.close, self.volume)
+        return '<Candle-{}:{}-{} {} {} {} {} {} {}>'.format(self.duration, self.contract, self.time.strftime('%H:%M:%S'),
+                                                self.open, self.high, self.low, self.close, self.volume, self.amount)
 
     def __repr__(self):
         return self.__str__()
@@ -227,7 +232,7 @@ class Candle:
     @classmethod
     def from_dict(cls, data):
         return cls(arrow.get(data['time']), data['open'], data['high'], data['low'],
-                   data['close'], data['volume'], data['contract'], data['duration'])
+                   data['close'], data['volume'], data['contract'], data['duration'], data.get('amount', None))
 
 
 class Info:
