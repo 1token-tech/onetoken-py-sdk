@@ -347,14 +347,14 @@ class Account:
         :param con:
         :return:
         """
-        log.debug('Get dealt trans', con=con)
+        # log.debug('Get dealt trans', con=con)
         data = {}
         if con is not None:
             data['contract'] = con
         if source is not None:
             data['helper'] = source
         res = await self.api_call('get', '/trans', params=data)
-        log.debug(res)
+        # log.debug(res)
         return res
 
     async def get_dealt_trans_from_db(self, con=None):
