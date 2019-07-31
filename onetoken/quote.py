@@ -93,23 +93,23 @@ class Quote:
                         data = json.loads(msg.data)
                     else:
                         data = json.loads(gzip.decompress(msg.data).decode())
-                    if 'uri' in data:
-                        if data['uri'] == 'pong':
-                            self.pong = arrow.now().timestamp
-                        elif data['uri'] == 'auth':
-                            log.info(data)
-                            self.authorized = True
-                        elif data['uri'] == 'subscribe-single-tick-verbose':
-                            log.info(data)
-                        elif data['uri'] == 'subscribe-single-candle':
-                            log.info(data)
-                        else:
-                            q_key, parsed_data = self.data_parser(data)
-                            if q_key is None:
-                                log.warning('unknown message', data)
-                                continue
-                            if q_key in self.data_queue:
-                                self.data_queue[q_key].put_nowait(parsed_data)
+                    uri = data.get('uri', 'data')
+                    if uri == 'pong':
+                        self.pong = arrow.now().timestamp
+                    elif uri == 'auth':
+                        log.info(data)
+                        self.authorized = True
+                    elif uri == 'subscribe-single-tick-verbose':
+                        log.info(data)
+                    elif uri == 'subscribe-single-candle':
+                        log.info(data)
+                    else:
+                        q_key, parsed_data = self.data_parser(data)
+                        if q_key is None:
+                            log.warning('unknown message', data)
+                            continue
+                        if q_key in self.data_queue:
+                            self.data_queue[q_key].put_nowait(parsed_data)
                 elif msg.type == aiohttp.WSMsgType.CLOSED:
                     log.warning('closed', msg)
                     break
@@ -194,6 +194,59 @@ class TickQuote(Quote):
         await self.subscribe_data(self.channel, on_update=on_update, contract=contract)
 
 
+class TickV3Quote(Quote):
+    def __init__(self):
+        super().__init__('tick.v3', Config.TICK_V3_HOST_WS, self.parse_tick)
+        self.channel = 'subscribe-single-tick-verbose'
+        print(Config.TICK_V3_HOST_WS)
+        self.ticks = {}
+
+    def parse_tick(self, data):
+        try:
+            c = data['c']
+            tm = arrow.get(data['tm'])
+            et = arrow.get(data['et']) if 'et' in data else None
+            tp = data['tp']
+            q_key = json.dumps({'contract': c, 'uri': self.channel}, sort_keys=True)
+            if tp == 's':
+                bids = [{'price': p, 'volume': v} for p, v in data['b']]
+                asks = [{'price': p, 'volume': v} for p, v in data['a']]
+                tick = Tick(tm, data['l'], data['v'], bids, asks, c, 'tick.v3', et, data['vc'])
+                self.ticks[tick.contract] = tick
+                return q_key, tick
+            elif tp == 'd':
+                if c not in self.ticks:
+                    log.warning('update arriving before snapshot', self.channel, data)
+                    return None, None
+                tick = self.ticks[c]
+                tick.time = tm
+                tick.exchange_time = et
+                tick.price = data['l']
+                tick.volume = data['v']
+                tick.amount = data['vc']
+                bids = {p: v for p, v in data['b']}
+                old_bids = {item['price']: item['volume'] for item in tick.bids}
+                old_bids.update(bids)
+                bids = [{'price': p, 'volume': v} for p, v in old_bids.items()]
+                bids = sorted(bids, key=lambda x: x['price'], reverse=True)
+
+                asks = {p: v for p, v in data['a']}
+                old_asks = {item['price']: item['volume'] for item in tick.asks}
+                old_asks.update(asks)
+                asks = [{'price': p, 'volume': v} for p, v in old_asks.items()]
+                asks = sorted(asks, key=lambda x: x['price'])
+
+                tick.bids = bids
+                tick.asks = asks
+                return q_key, tick
+        except Exception as e:
+            log.warning('parse error', e, data)
+        return None, None
+
+    async def subscribe_tick_v3(self, contract, on_update):
+        await self.subscribe_data(self.channel, on_update=on_update, contract=contract)
+
+
 class CandleQuote(Quote):
     def __init__(self, key):
         super().__init__(key, Config.CANDLE_HOST_WS, self.parse_candle)
@@ -230,6 +283,19 @@ async def get_client(key='defalut'):
 async def subscribe_tick(contract, on_update):
     c = await get_client()
     return await c.subscribe_tick(contract, on_update)
+
+_tick_v3_client = None
+
+async def get_v3_client():
+    global _tick_v3_client
+    if _tick_v3_client is None:
+        _tick_v3_client = TickV3Quote()
+    return _tick_v3_client
+
+
+async def subscribe_tick_v3(contract, on_update):
+    c = await get_v3_client()
+    return await c.subscribe_tick_v3(contract, on_update)
 
 
 _candle_client_pool = {}
