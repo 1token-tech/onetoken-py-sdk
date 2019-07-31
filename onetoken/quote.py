@@ -227,13 +227,13 @@ class TickV3Quote(Quote):
                 bids = {p: v for p, v in data['b']}
                 old_bids = {item['price']: item['volume'] for item in tick.bids}
                 old_bids.update(bids)
-                bids = [{'price': p, 'volume': v} for p, v in old_bids.items()]
+                bids = [{'price': p, 'volume': v} for p, v in old_bids.items() if v > 0]
                 bids = sorted(bids, key=lambda x: x['price'], reverse=True)
 
                 asks = {p: v for p, v in data['a']}
                 old_asks = {item['price']: item['volume'] for item in tick.asks}
                 old_asks.update(asks)
-                asks = [{'price': p, 'volume': v} for p, v in old_asks.items()]
+                asks = [{'price': p, 'volume': v} for p, v in old_asks.items() if v > 0]
                 asks = sorted(asks, key=lambda x: x['price'])
 
                 tick.bids = bids
