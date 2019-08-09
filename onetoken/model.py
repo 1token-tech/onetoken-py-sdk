@@ -7,6 +7,18 @@ import dateutil.parser
 
 
 class Tick:
+    def copy(self):
+        return Tick(time=self.time,
+                    price=self.price,
+                    volume=self.volume,
+                    bids=json.loads(json.dumps(self.bids)),
+                    asks=json.loads(json.dumps(self.asks)),
+                    contract=self.contract,
+                    source=self.source,
+                    exchange_time=self.exchange_time,
+                    amount=self.amount,
+                    )
+
     def __init__(self, time, price, volume=0, bids=None, asks=None, contract=None,
                  source=None,
                  exchange_time=None,

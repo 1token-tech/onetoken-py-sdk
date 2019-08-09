@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 
 import arrow
 import pytest
@@ -28,18 +29,22 @@ async def test_tick_quote():
 @pytest.mark.asyncio
 async def test_tick_v3_quote():
     happen = False
+    last = None
 
     async def update(tk: onetoken.Tick):
-        nonlocal happen
-        happen = True
+        nonlocal happen, last
         assert tk.contract == 'okef/btc.usd.q'
-        # print(type(tk.time), type(tk.exchange_time))
-        print('tick updated', arrow.get(tk.time).to('PRC').time(),
-              arrow.get(tk.exchange_time).to('PRC').time(), tk.asks[0],
-              tk.bids[0], len(tk.asks), len(tk.bids))
+        if last == tk.time:
+            print('same time', tk, hashlib.md5(str(tk.bids).encode()), hashlib.md5(str(tk.asks).encode()))
+        last = tk.time
+        if not happen:
+            print('tick updated', arrow.get(tk.time).to('PRC').time(),
+                  arrow.get(tk.exchange_time).to('PRC').time(), tk.asks[0],
+                  tk.bids[0], len(tk.asks), len(tk.bids))
+        happen = True
 
     await onetoken.quote.subscribe_tick_v3('okef/btc.usd.q', on_update=update)
-    for _ in range(30):
+    for _ in range(70):
         await asyncio.sleep(1)
     assert happen
 

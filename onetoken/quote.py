@@ -225,7 +225,8 @@ class TickV3Quote(Quote):
                 if c not in self.ticks:
                     log.warning('update arriving before snapshot', self.channel, data)
                     return None, None
-                tick = self.ticks[c]
+                tick = self.ticks[c].copy()
+
                 tick.time = tm.datetime
                 tick.exchange_time = et.datetime
                 tick.price = data['l']
@@ -245,6 +246,7 @@ class TickV3Quote(Quote):
 
                 tick.bids = bids
                 tick.asks = asks
+                self.ticks[c] = tick
                 return q_key, tick
         except Exception as e:
             log.warning('parse error', e, data)
