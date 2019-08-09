@@ -1,6 +1,8 @@
 import asyncio
-import onetoken
+
 import pytest
+
+import onetoken
 
 
 @pytest.mark.asyncio
@@ -26,16 +28,18 @@ async def test_tick_quote():
 async def test_tick_v3_quote():
     happen = False
 
-    async def update(tk):
+    async def update(tk: onetoken.Tick):
         nonlocal happen
         happen = True
         assert tk.contract == 'okef/btc.usd.q'
-        print('tick updated', tk, len(tk.asks), len(tk.bids))
+        print('tick updated', tk.time.astimezone('PRC').time(), tk.exchange_time.to('PRC').time(), tk.asks[0],
+              tk.bids[0], len(tk.asks), len(tk.bids))
 
     await onetoken.quote.subscribe_tick_v3('okef/btc.usd.q', on_update=update)
     for _ in range(30):
         await asyncio.sleep(1)
     assert happen
+
 
 @pytest.mark.asyncio
 async def test_candle_quote():
