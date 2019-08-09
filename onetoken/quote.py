@@ -1,12 +1,13 @@
 import asyncio
-from collections import defaultdict
-import arrow
-import aiohttp
 import json
+from collections import defaultdict
 
+import aiohttp
+import arrow
+
+from .config import Config
 from .logger import log
 from .model import Tick, Contract, Candle
-from .config import Config
 
 
 class Quote:
@@ -164,9 +165,15 @@ class Quote:
                 continue
             for callback in self.queue_handlers[q_key]:
                 if asyncio.iscoroutinefunction(callback):
-                    await callback(tk)
+                    try:
+                        await callback(tk)
+                    except:
+                        log.exception('quote callback fail')
                 else:
-                    callback(tk)
+                    try:
+                        callback(tk)
+                    except:
+                        log.exception('quote callback fail')
 
     async def close(self):
         self.ensure_connection = False
@@ -219,8 +226,8 @@ class TickV3Quote(Quote):
                     log.warning('update arriving before snapshot', self.channel, data)
                     return None, None
                 tick = self.ticks[c]
-                tick.time = tm
-                tick.exchange_time = et
+                tick.time = tm.datetime
+                tick.exchange_time = et.datetime
                 tick.price = data['l']
                 tick.volume = data['v']
                 tick.amount = data['vc']
@@ -258,7 +265,8 @@ class CandleQuote(Quote):
             if 'data' in data:
                 data = data['data']
             candle = Candle.from_dict(data)
-            q_key = json.dumps({'contract': candle.contract, 'duration': candle.duration, 'uri': self.channel}, sort_keys=True)
+            q_key = json.dumps({'contract': candle.contract, 'duration': candle.duration, 'uri': self.channel},
+                               sort_keys=True)
             return q_key, candle
         except Exception as e:
             log.warning('parse error', e)
@@ -284,7 +292,9 @@ async def subscribe_tick(contract, on_update):
     c = await get_client()
     return await c.subscribe_tick(contract, on_update)
 
+
 _tick_v3_client = None
+
 
 async def get_v3_client():
     global _tick_v3_client

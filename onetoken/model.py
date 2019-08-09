@@ -1,5 +1,6 @@
 import json
 import logging
+
 import arrow
 import dateutil
 import dateutil.parser
@@ -24,6 +25,9 @@ class Tick:
         self.amount = amount
         self.bids = []
         self.asks = []
+        if isinstance(time, arrow.Arrow):
+            exchange_time = exchange_time.datetime
+        assert exchange_time.tzinfo
         self.exchange_time = exchange_time
         if bids:
             self.bids = sorted(bids, key=lambda x: -x['price'])
@@ -223,8 +227,10 @@ class Candle:
         self.duration = duration
 
     def __str__(self):
-        return '<Candle-{}:{}-{} {} {} {} {} {} {}>'.format(self.duration, self.contract, self.time.strftime('%H:%M:%S'),
-                                                self.open, self.high, self.low, self.close, self.volume, self.amount)
+        return '<Candle-{}:{}-{} {} {} {} {} {} {}>'.format(self.duration, self.contract,
+                                                            self.time.strftime('%H:%M:%S'),
+                                                            self.open, self.high, self.low, self.close, self.volume,
+                                                            self.amount)
 
     def __repr__(self):
         return self.__str__()
@@ -291,7 +297,6 @@ class Info:
             ]
         }
         return Info(data_dict)
-
 
     def __repr__(self):
         return json.dumps(self.data)

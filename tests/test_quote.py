@@ -1,5 +1,6 @@
 import asyncio
 
+import arrow
 import pytest
 
 import onetoken
@@ -32,7 +33,9 @@ async def test_tick_v3_quote():
         nonlocal happen
         happen = True
         assert tk.contract == 'okef/btc.usd.q'
-        print('tick updated', tk.time.astimezone('PRC').time(), tk.exchange_time.to('PRC').time(), tk.asks[0],
+        # print(type(tk.time), type(tk.exchange_time))
+        print('tick updated', arrow.get(tk.time).to('PRC').time(),
+              arrow.get(tk.exchange_time).to('PRC').time(), tk.asks[0],
               tk.bids[0], len(tk.asks), len(tk.bids))
 
     await onetoken.quote.subscribe_tick_v3('okef/btc.usd.q', on_update=update)
