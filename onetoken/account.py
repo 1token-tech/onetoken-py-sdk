@@ -532,7 +532,7 @@ class Account:
                 if msg.type == aiohttp.WSMsgType.TEXT:
                     await self.handle_message(msg.data)
                 elif msg.type == aiohttp.WSMsgType.CLOSED:
-                    log.debug('closed')
+                    log.info('websocket closed')
                     break
                 elif msg.type == aiohttp.WSMsgType.ERROR:
                     log.warning('error', msg)
@@ -576,7 +576,7 @@ class Account:
                             await handler(info)
                         except:
                             log.exception('handle info error')
-            if action == 'order' and 'order' in self.sub_queue:
+            elif action == 'order' and 'order' in self.sub_queue:
                 if data.get('status', 'ok') == 'ok':
                     for order in data['data']:
                         exg_oid = order['exchange_oid']
@@ -592,6 +592,8 @@ class Account:
                 else:
                     # todo 这里处理order 拿到 error 的情况
                     log.warning('order update error message', data)
+            else:
+                log.info(f'receive message {data}')
         except Exception as e:
             log.warning('unexpected msg format', msg, e)
 
