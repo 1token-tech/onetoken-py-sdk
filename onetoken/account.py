@@ -1,20 +1,20 @@
 import asyncio
-import json
-import urllib.parse
+import hashlib
 import hmac
-from typing import Union, Tuple
+import json
+import time
+import urllib.parse
 from datetime import datetime
+from typing import Union, Tuple
 
 import aiohttp
 import jwt
-import time
-import hashlib
 
 from . import autil
 from . import log
 from . import util
-from .model import Info, Order
 from .config import Config
+from .model import Info, Order
 
 
 def get_trans_host(exg):
@@ -279,6 +279,7 @@ class Account:
         :param amount:
         :param client_oid:
         :param tags: a key value dict
+        :param on_update:
         :return:
         """
         log.debug('Place order', con=con, price=price, bs=bs, amount=amount, client_oid=client_oid)
@@ -306,7 +307,7 @@ class Account:
                 ex, err = res
                 if ex and 'exchange_oid' in ex:
                     exg_oid = ex['exchange_oid']
-                    if exg_oid not in self.sub_queue['order']: 
+                    if exg_oid not in self.sub_queue['order']:
                         self.sub_queue['order'][exg_oid] = asyncio.Queue()
                     asyncio.ensure_future(self.handle_order_q(exg_oid, on_update))
         return res
@@ -344,6 +345,7 @@ class Account:
     async def get_dealt_trans(self, con=None, source=None):
         """
         get recent dealt transactions
+        :param source:
         :param con:
         :return:
         """
@@ -580,7 +582,7 @@ class Account:
                         exg_oid = order['exchange_oid']
                         log.debug('order info updating', exg_oid, status=order['status'])
                         if exg_oid not in self.sub_queue['order']:
-                            q =  asyncio.Queue()
+                            q = asyncio.Queue()
                             self.sub_queue['order'][exg_oid] = q
                             asyncio.ensure_future(self.ensure_order_dequeued(exg_oid))
                         self.sub_queue['order'][exg_oid].put_nowait(order)
@@ -597,7 +599,7 @@ class Account:
         timeout = 10
         bg = datetime.now()
         while 'order' in self.sub_queue and exg_oid in self.sub_queue['order'] \
-                and not self.sub_queue['order'][exg_oid].empty():
+            and not self.sub_queue['order'][exg_oid].empty():
             if (datetime.now() - bg).total_seconds() > timeout:
                 del self.sub_queue['order'][exg_oid]
                 break
