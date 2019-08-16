@@ -39,7 +39,8 @@ class Tick:
         self.asks = []
         if isinstance(time, arrow.Arrow):
             exchange_time = exchange_time.datetime
-        assert exchange_time.tzinfo
+        if exchange_time:
+            assert exchange_time.tzinfo
         self.exchange_time = exchange_time
         if bids:
             self.bids = sorted(bids, key=lambda x: -x['price'])

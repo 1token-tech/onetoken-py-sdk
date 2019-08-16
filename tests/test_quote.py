@@ -16,10 +16,10 @@ async def test_tick_quote():
     async def update(tk):
         nonlocal happen
         happen = True
-        assert tk.contract == 'okef/btc.usd.q'
+        assert tk.contract == 'kucoin/eos.usdt'
         print('tick updated')
 
-    await q.subscribe_tick('okef/btc.usd.q', on_update=update)
+    await q.subscribe_tick('kucoin/eos.usdt', on_update=update)
     for _ in range(3):
         await asyncio.sleep(1)
     await q.close()
