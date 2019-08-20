@@ -1,17 +1,23 @@
 import random
 import string
+
 import arrow
 
 
 def rand_id(length=10):
-    # return uuid.uuid4()
-    r = ''.join(random.choice(string.ascii_lowercase + string.ascii_uppercase + string.digits) for _ in range(length))
+    assert length >= 1
+
+    first = random.choice(string.ascii_lowercase + string.ascii_uppercase)
+    after = ''.join(random.choice(string.ascii_lowercase + string.ascii_uppercase + string.digits)
+                    for _ in range(length - 1))
+
+    r = first + after
     return r
 
 
 def rand_client_oid(contract_symbol):
     """
-        binance/xxx.yyy-20190816152332asdfqwer123450
+        binance/btc.usdt-20190816152332asdfqwer123450
     :param contract_symbol:
     :return:
     """
@@ -32,4 +38,3 @@ def rand_client_wid(exchange, currency):
     rand = rand_id(5)
     cwid = f'{exchange}/{currency}-{now}-{rand}'
     return cwid
-
