@@ -7,7 +7,7 @@ import arrow
 
 from .config import Config
 from .logger import log
-from .model import Tick, Contract, Candle
+from .model import Tick, Contract, Candle, Zhubi
 
 
 class Quote:
@@ -101,6 +101,8 @@ class Quote:
                         log.info(data)
                         self.authorized = True
                     elif uri == 'subscribe-single-tick-verbose':
+                        log.info(data)
+                    elif uri == 'subscribe-single-zhubi-verbose':
                         log.info(data)
                     elif uri == 'subscribe-single-candle':
                         log.info(data)
@@ -274,6 +276,24 @@ class CandleQuote(Quote):
         await self.subscribe_data(self.channel, on_update=on_update, contract=contract, duration=duration)
 
 
+class ZhubiQuote(Quote):
+    def __init__(self, key):
+        super().__init__(key, Config.TICK_HOST_WS, self.parse_zhubi)
+        self.channel = 'subscribe-single-zhubi-verbose'
+
+    def parse_zhubi(self, data):
+        try:
+            zhubi = [Zhubi.from_dict(data) for data in data['data']]
+            q_key = json.dumps({'contract': zhubi[0].contract, 'uri': self.channel}, sort_keys=True)
+            return q_key, zhubi
+        except Exception as e:
+            log.warning('parse error', e)
+        return None, None
+
+    async def subscribe_zhubi(self, contract, on_update):
+        await self.subscribe_data(self.channel, on_update=on_update, contract=contract)
+
+
 _client_pool = {}
 
 
@@ -321,6 +341,23 @@ async def get_candle_client(key='defalut'):
 async def subscribe_candle(contract, duration, on_update):
     c = await get_candle_client()
     return await c.subscribe_candle(contract, duration, on_update)
+
+
+_zhubi_quote_pool = {}
+
+
+async def get_zhubi_client(key='defalut'):
+    if key in _zhubi_quote_pool:
+        return _zhubi_quote_pool[key]
+    else:
+        c = ZhubiQuote(key)
+        _zhubi_quote_pool[key] = c
+        return c
+
+
+async def subscribe_zhubi(contract, on_update):
+    c = await get_zhubi_client()
+    return await c.subscribe_zhubi(contract, on_update)
 
 
 async def get_last_tick(contract):

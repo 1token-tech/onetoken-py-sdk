@@ -254,6 +254,27 @@ class Candle:
                    data['close'], data['volume'], data['contract'], data['duration'], data.get('amount', None))
 
 
+class Zhubi:
+    def __init__(self, time, exchange_time, contract, price, amount, bs):
+        self.contract = contract
+        self.time = time
+        self.exchange_time = exchange_time
+        self.price = price
+        self.amount = amount
+        self.bs = bs
+
+    def __str__(self):
+        return f'<Zhubi-{self.contract}:{self.exchange_time}-{self.price} {self.amount} {self.bs}>'
+
+    def __repr__(self):
+        return self.__str__()
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(arrow.get(data['time']), arrow.get(data['exchange_time']), data['contract'], data['price'],
+                   data['amount'], data['bs'])
+
+
 class Info:
     def __init__(self, data):
         assert isinstance(data, dict)
