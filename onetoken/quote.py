@@ -135,10 +135,6 @@ class Quote:
         sub_data = {'uri': uri}
         sub_data.update(kwargs)
         q_key = json.dumps(sub_data, sort_keys=True)
-        if uri == 'subscribe-single-candle':
-            sub_data['uri'] = 'single-candle'
-            q_key = json.dumps(sub_data, sort_keys=True)
-            sub_data['uri'] = 'subscribe-single-candle'
 
         async with self.lock:
             try:
@@ -259,7 +255,7 @@ class TickV3Quote(Quote):
 class CandleQuote(Quote):
     def __init__(self, key):
         super().__init__(key, Config.CANDLE_HOST_WS, self.parse_candle)
-        self.channel = 'single-candle'
+        self.channel = 'subscribe-single-candle'
         self.authorized = True
 
     def parse_candle(self, data):
@@ -275,7 +271,7 @@ class CandleQuote(Quote):
         return None, None
 
     async def subscribe_candle(self, contract, duration, on_update):
-        await self.subscribe_data('subscribe-single-candle', on_update=on_update, contract=contract, duration=duration)
+        await self.subscribe_data(self.channel, on_update=on_update, contract=contract, duration=duration)
 
 
 _client_pool = {}
