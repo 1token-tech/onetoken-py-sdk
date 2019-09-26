@@ -28,13 +28,16 @@ def rand_client_oid(contract_symbol):
     :return:
     """
     now = arrow.now().format('YYYYMMDDHHmmss')
-    if contract_symbol.startswith('huobi'):
-        rand = rand_digi(14)
+    if contract_symbol.startswith('huobif'):
+        now = arrow.now().timestamp
+        coid = f'{random.randint(now << 32, (now+1) << 32)}'
     elif contract_symbol.startswith('gate'):
         rand = rand_id(2)
+        coid = f'{now}{rand}'
     else:
         rand = rand_id(14)
-    oid = f'{contract_symbol}-{now}{rand}'
+        coid = f'{now}{rand}'
+    oid = f'{contract_symbol}-{coid}'
     return oid
 
 
