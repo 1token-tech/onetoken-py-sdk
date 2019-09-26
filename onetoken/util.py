@@ -15,6 +15,12 @@ def rand_id(length=10):
     return r
 
 
+def rand_digi(length=10):
+    assert length >= 1
+    r = ''.join(random.choice(string.digits) for _ in range(length))
+    return r
+
+
 def rand_client_oid(contract_symbol):
     """
         binance/btc.usdt-20190816152332asdfqwer123450
@@ -22,7 +28,12 @@ def rand_client_oid(contract_symbol):
     :return:
     """
     now = arrow.now().format('YYYYMMDDHHmmss')
-    rand = rand_id(14)
+    if contract_symbol.startswith('huobi'):
+        rand = rand_digi(14)
+    elif contract_symbol.startswith('gate'):
+        rand = rand_id(2)
+    else:
+        rand = rand_id(14)
     oid = f'{contract_symbol}-{now}{rand}'
     return oid
 
