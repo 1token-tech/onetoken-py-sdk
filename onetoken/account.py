@@ -199,13 +199,16 @@ class Account:
         return acc_info, None
 
     async def place_and_cancel(self, con, price, bs, amount, sleep, options=None):
-
         k = util.rand_client_oid(con)
         res1, err1 = await self.place_order(con, price, bs, amount, client_oid=k, options=options)
         if err1:
             return (res1, None), (err1, None)
         await asyncio.sleep(sleep)
-        res2, err2 = await self.cancel_use_client_oid(k)
+        if res1 and 'exchange_oid' in res1:
+            exg_oid = res1['exchange_oid']
+            res2, err2 = await self.cancel_use_exchange_oid(exg_oid)
+        else:
+            res2, err2 = await self.cancel_use_client_oid(k)
         if err1 or err2:
             return (res1, res2), (err1, err2)
         return [res1, res2], None
@@ -291,7 +294,7 @@ class Account:
         if client_oid:
             data['client_oid'] = client_oid
         if tags:
-            data['tags'] = ','.join(['{}:{}'.format(k, v) for k, v in tags.items()])
+            data['tags'] = tags
         if options:
             data['options'] = options
         res = await self.api_call('post', '/orders', data=data)

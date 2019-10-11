@@ -271,7 +271,7 @@ class Zhubi:
 
     @classmethod
     def from_dict(cls, data):
-        return cls(arrow.get(data['time']), arrow.get(data['exchange_time']), data['contract'], data['price'],
+        return cls(arrow.get(data['time']).datetime, arrow.get(data['exchange_time']).datetime, data['contract'], data['price'],
                    data['amount'], data['bs'])
 
 
