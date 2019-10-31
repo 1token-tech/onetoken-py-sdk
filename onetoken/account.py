@@ -2,13 +2,13 @@ import asyncio
 import hashlib
 import hmac
 import json
-import time
 import urllib.parse
-from datetime import datetime
-from typing import Union, Tuple
 
 import aiohttp
 import jwt
+import time
+from datetime import datetime
+from typing import Union, Tuple
 
 from . import autil
 from . import log
@@ -104,7 +104,8 @@ class Account:
         self.closed = False
 
         self.sub_queue = {}
-        asyncio.ensure_future(self.keep_connection())
+        self.tasks_keep_connection = asyncio.Task(self.keep_connection())
+        asyncio.ensure_future(self.tasks_keep_connection)
 
     def close(self):
         if self.ws and not self.ws.closed:
@@ -112,6 +113,7 @@ class Account:
         if self.session and not self.session.closed:
             asyncio.ensure_future(self.session.close())
         self.closed = True
+        self.tasks_keep_connection.cancel()
 
     def __del__(self):
         self.close()
@@ -510,6 +512,7 @@ class Account:
             elif self.ws_state == GOING_TO_DICCONNECT:
                 await self.ws.close()
             await asyncio.sleep(1)
+        log.info('keep connection end')
 
     async def ws_connect(self):
         self.set_ws_state(CONNECTING)

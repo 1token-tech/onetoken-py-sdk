@@ -1,15 +1,13 @@
 import asyncio
-from pathlib import Path
 
 import aiohttp
 import pytest
 import yaml
-
-from onetoken.account import gen_nonce, gen_sign
+from pathlib import Path
 
 
 @pytest.mark.asyncio
-async def test_trade_subscribe():
+async def test_trade_subscribe_success():
     import onetoken as ot
     ot.log.info('hello')
     r = Path('~/.onetoken/demo-vnpy.yml').expanduser().read_text()
@@ -21,7 +19,9 @@ async def test_trade_subscribe():
         print(args, kwargs)
 
     await o.subscribe_info(h)
-    await asyncio.sleep(10)
+    await asyncio.sleep(5)
+    o.close()
+    await asyncio.sleep(2)
 
 
 @pytest.mark.asyncio
@@ -37,7 +37,8 @@ async def test_trade_subscribe_fail():
         print(args, kwargs)
 
     await o.subscribe_info(h)
-    await asyncio.sleep(10)
+    await asyncio.sleep(3)
+    o.close()
 
 
 @pytest.mark.asyncio
@@ -49,9 +50,6 @@ async def test_trade_noheader():
 
     o = ot.Account('okex/mock-vnpy', api_key=r['ot_key'], api_secret=r['ot_secret'] + 'fail')
 
-    nonce = gen_nonce()
-    sign = gen_sign(o.api_secret, 'GET', f'/ws/{o.name}', nonce, None)
-    # headers = {'Api-Nonce': str(nonce), 'Api-Key': o.api_key, 'Api-Signature': sign}
     url = o.ws_path
     ws = await o.session.ws_connect(url, autoping=False, headers=None, timeout=30)
 
@@ -63,9 +61,7 @@ async def test_trade_noheader():
             print(msg)
 
     asyncio.ensure_future(h())
-    await asyncio.sleep(10)
-
-
-if __name__ == '__main__':
-    asyncio.get_event_loop().run_until_complete(test_trade_subscribe())
-    asyncio.get_event_loop().run_forever()
+    await asyncio.sleep(3)
+    await ws.close()
+    o.close()
+    await asyncio.sleep(0.1)

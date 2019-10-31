@@ -44,7 +44,7 @@ async def test_tick_v3_quote():
         happen = True
 
     await onetoken.quote.subscribe_tick_v3('okef/btc.usd.q', on_update=update)
-    for _ in range(70):
+    for _ in range(3):
         await asyncio.sleep(1)
     assert happen
 
@@ -62,7 +62,7 @@ async def test_candle_quote():
 
     await onetoken.quote.subscribe_candle('okef/btc.usd.q', '1m', on_update=update)
     await onetoken.quote.subscribe_candle('okef/btc.usd.q', '1m', on_update=update)
-    for _ in range(60):
+    for _ in range(3):
         await asyncio.sleep(1)
     assert happen
 
