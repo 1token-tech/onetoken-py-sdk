@@ -580,6 +580,8 @@ class Account:
                     for handler in self.sub_queue['info'].values():
                         try:
                             await handler(info)
+                            if asyncio.iscoroutinefunction(handler):
+                                await handler(info)
                         except:
                             log.exception('handle info error')
             elif action == 'order' and 'order' in self.sub_queue:
@@ -594,7 +596,8 @@ class Account:
                         self.sub_queue['order'][exg_oid].put_nowait(order)
                         if '*' in self.sub_queue['order']:
                             h = self.sub_queue['order']['*']
-                            await h(order)
+                            if asyncio.iscoroutinefunction(h):
+                                await h(order)
                 else:
                     # todo 这里处理order 拿到 error 的情况
                     log.warning('order update error message', data)
