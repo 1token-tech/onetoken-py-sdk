@@ -11,9 +11,9 @@ from datetime import datetime
 from typing import Union, Tuple
 
 from . import autil
-from . import log
 from . import util
 from .config import Config
+from .logger import log
 from .model import Info, Order
 
 
