@@ -604,7 +604,7 @@ class Account:
             else:
                 log.info(f'receive message {data}')
         except Exception as e:
-            log.warning('unexpected msg format', msg, e)
+            log.exception('handle msg exception', msg)
 
     async def ensure_order_dequeued(self, exg_oid):
         timeout = 10
