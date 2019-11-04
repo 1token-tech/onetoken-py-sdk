@@ -2,13 +2,13 @@ import asyncio
 import hashlib
 import hmac
 import json
+import time
 import urllib.parse
+from datetime import datetime
+from typing import Union, Tuple
 
 import aiohttp
 import jwt
-import time
-from datetime import datetime
-from typing import Union, Tuple
 
 from . import autil
 from . import util
@@ -99,6 +99,7 @@ class Account:
             self.session = session
         self.ws = None
         self.ws_state = IDLE
+        self.ws_sub_order = False  # ws is subscribing order or not, true after sub-order is sent
         self.ws_support = True
         self.last_pong = 0
         self.closed = False
@@ -106,6 +107,12 @@ class Account:
         self.sub_queue = {}
         self.tasks_keep_connection = asyncio.Task(self.keep_connection())
         asyncio.ensure_future(self.tasks_keep_connection)
+
+    async def start_subscribe_orders(self):
+        log.info('start subscribe orders')
+        await self.subscribe_orders()
+        while not self.ws_sub_order:
+            await asyncio.sleep(0.1)
 
     def close(self):
         if self.ws and not self.ws.closed:
@@ -287,7 +294,9 @@ class Account:
         :param on_update:
         :return:
         """
-        log.debug('Place order', con=con, price=price, bs=bs, amount=amount, client_oid=client_oid)
+        if on_update and self.ws_state == IDLE:
+            await self.start_subscribe_orders()
+        log.debug('place order', con=con, price=price, bs=bs, amount=amount, client_oid=client_oid)
 
         data = {'contract': con,
                 'price': price,
@@ -521,7 +530,7 @@ class Account:
         headers = {'Api-Nonce': str(nonce), 'Api-Key': self.api_key, 'Api-Signature': sign}
         url = self.ws_path
         try:
-            print(url)
+            log.info('connect websocket', url)
             self.ws = await self.session.ws_connect(url, autoping=False, headers=headers, timeout=30)
         except:
             self.set_ws_state(GOING_TO_CONNECT, 'ws connect failed')
@@ -569,6 +578,8 @@ class Account:
                     self.set_ws_state(READY, 'Connected and auth passed.')
                     for key in self.sub_queue.keys():
                         await self.ws.send_json({'uri': 'sub-{}'.format(key)})
+                        if key == 'order':
+                            self.ws_sub_order = True
                 else:
                     self.set_ws_state(GOING_TO_CONNECT, data['message'])
             elif action == 'info':
@@ -624,7 +635,8 @@ class Account:
             self.sub_queue['info'] = {}
         if handler_name is None:
             handler_name = 'default'
-        self.sub_queue['info'][handler_name] = handler
+        if handler is not None:
+            self.sub_queue['info'][handler_name] = handler
         if self.ws_state == READY:
             await self.ws.send_json({'uri': 'sub-info'})
         elif self.ws_state == IDLE:
@@ -648,6 +660,7 @@ class Account:
             self.sub_queue['order']['*'] = handler
         if self.ws_state == READY:
             await self.ws.send_json({'uri': 'sub-order'})
+            self.ws_sub_order = True
         elif self.ws_state == IDLE:
             self.set_ws_state(GOING_TO_CONNECT, 'user sub order')
 
@@ -656,6 +669,7 @@ class Account:
             del self.sub_queue['order']
         if self.ws_state == READY:
             await self.ws.send_json({'uri': 'unsub-order'})
+            self.ws_sub_order = False
         if not self.sub_queue and self.ws_state != IDLE:
             self.set_ws_state(GOING_TO_DICCONNECT, 'subscribe nothing')
 
