@@ -37,7 +37,7 @@ class Tick:
         self.amount = amount
         self.bids = []
         self.asks = []
-        if isinstance(time, arrow.Arrow):
+        if isinstance(exchange_time, arrow.Arrow):
             exchange_time = exchange_time.datetime
         if exchange_time:
             assert exchange_time.tzinfo
