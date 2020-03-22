@@ -53,25 +53,28 @@ async def http_go(func, url, timeout=15, method='json', accept_4xx=False, *args,
         params['source'] = 'onetoken-py-sdk'
         kwargs['timeout'] = timeout
         resp = await asyncio.wait_for(func(url, *args, **kwargs), timeout)
+        txt = await resp.text()
+        if resp.status >= 500:
+            return None, HTTPError(HTTPError.RESPONSE_5XX, txt)
+
+        if 400 <= resp.status < 500:
+            return None, HTTPError(HTTPError.RESPONSE_4XX, txt)
+
+        if method == 'raw':
+            return resp, None
+        elif method == 'text':
+            return txt, None
+        elif method == 'json':
+            try:
+                return json.loads(txt), None
+            except:
+                return None, HTTPError(HTTPError.NOT_JSON, txt)
     except asyncio.TimeoutError:
         return None, HTTPError(HTTPError.TIMEOUT, "")
     except aiohttp.ClientError as e:
         return None, HTTPError(HTTPError.HTTP_ERROR, str(e))
+    except Exception as e:
+        return None, HTTPError(HTTPError.HTTP_ERROR, str(e))
 
-    txt = await resp.text()
 
-    if resp.status >= 500:
-        return None, HTTPError(HTTPError.RESPONSE_5XX, txt)
 
-    if 400 <= resp.status < 500:
-        return None, HTTPError(HTTPError.RESPONSE_4XX, txt)
-
-    if method == 'raw':
-        return resp, None
-    elif method == 'text':
-        return txt, None
-    elif method == 'json':
-        try:
-            return json.loads(txt), None
-        except:
-            return None, HTTPError(HTTPError.NOT_JSON, txt)
