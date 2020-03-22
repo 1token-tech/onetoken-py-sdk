@@ -51,6 +51,7 @@ async def http_go(func, url, timeout=15, method='json', accept_4xx=False, *args,
             kwargs['params'] = {}
         params = kwargs['params']
         params['source'] = 'onetoken-py-sdk'
+        kwargs['timeout'] = timeout
         resp = await asyncio.wait_for(func(url, *args, **kwargs), timeout)
     except asyncio.TimeoutError:
         return None, HTTPError(HTTPError.TIMEOUT, "")
