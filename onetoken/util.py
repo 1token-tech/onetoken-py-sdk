@@ -28,7 +28,7 @@ def rand_client_oid(contract_symbol):
     :return:
     """
     now = arrow.now().format('YYYYMMDDHHmmss')
-    if contract_symbol.startswith('huobif'):
+    if contract_symbol.startswith('huobif') or contract_symbol.startswith('huobiuswap') :
         now = arrow.now().timestamp
         coid = f'{random.randint(now << 32, (now+1) << 32)}'
     elif contract_symbol.startswith('gate'):
